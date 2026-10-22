@@ -1,0 +1,15 @@
+# Scoring rules. Edit and the next run picks them up; no code change needed.
+# Every run stores a SHA-256 hash and a full snapshot of this file's effective values.
+
+program_start: null        # "YYYY-MM-DD": badges earned before this date don't count
+program_end: null          # optional end date, inclusive
+points:
+  skill_badge: 10
+  course_badge: 3
+  game_badge: 5
+  other: 0
+count_deprecated: true      # false = deprecated badges score 0
+badge_overrides: {}         # exact title -> points; wins over category
+max_points_per_member: null # optional cap
+team_aggregation: sum       # sum | average (average over members with a working link)
+min_team_members: 1
