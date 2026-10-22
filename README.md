@@ -106,6 +106,7 @@ min_team_members: 1         # teams with fewer active members are not ranked
   - `/games/…` → `game_badge`
   - `/course_templates/…` with "skill badge" in the description → `skill_badge`
   - any other `/course_templates/…` → `course_badge`
+  - no dialog for that badge, and a title matching `^Level \d+:` or containing `Arcade` or `Trivia` → `game_badge`
   - everything else → `other`
 
   A title starting with `[Deprecated]` sets `deprecated` and keeps the category.
@@ -126,9 +127,9 @@ min_team_members: 1         # teams with fewer active members are not ranked
 4. **Save results.**
    - **On success,** new badges are inserted, changed ones updated and vanished ones deleted. `first_seen_at` is preserved as evidence for disputes.
    - **On failure** (`fetch_error`, `not_found` or `parse_error`), the member's previous badges are kept and marked `stale`. A failure never counts as zero badges.
-   - **Parse errors** come from two cases: the page has no `<h1>`, or it has no badges and also lacks the "…hasn't earned any badges yet" text. Zero badges is trusted only when the page says so, so a redesign of the badge section makes the run fail validation instead of silently zeroing everyone. An empty profile can still show a league and points, because points also come from labs.
+   - **Parse errors** come from three cases: the page has no `<h1>`; it has no badges and also lacks the "…hasn't earned any badges yet" text; or it has badges but not one of them could be matched to its `ql-dialog` source path. Zero badges is trusted only when the page says so, so a redesign of the badge section makes the run fail validation instead of silently zeroing everyone. An empty profile can still show a league and points, because points also come from labs.
 5. **Score and rank,** then keep the top `LEADERBOARD_SIZE`.
-6. **Validate.** The run is published only if `succeeded / attempted >= MIN_SUCCESS_RATIO`. Otherwise it is `rejected`, and the API keeps serving the previous published run. Standings are written in the same transaction that sets the status.
+6. **Validate.** The run is published only if `succeeded / attempted >= MIN_SUCCESS_RATIO` **and** no more than `MAX_OTHER_BADGE_RATIO` (50%) of the badges fetched in this run were classified `other`. A flood of `other` badges, which score 0, means the classification markup has changed. Otherwise the run is `rejected`, its notes say why, and the API keeps serving the previous published run. Standings are written in the same transaction that sets the status.
 
 ## API
 
@@ -141,8 +142,14 @@ Public endpoints never return emails or USNs.
 | GET | `/api/leaderboard/history?limit=30` | Past runs with status and counts |
 | GET | `/api/leaderboard/status` | Last run, last published run, next scheduled run, link-health counts, unassigned members (team mode) |
 | GET | `/api/leaderboard/runs/{run_id}` | Standings and scoring snapshot of a past run |
-| GET | `/api/teams/{team_id}` | Team, its members, and each member's counted and uncounted badges (with reason) |
-| GET | `/api/members/{member_id}` | Name, department, year, display_name, league, platform_points, last_success_at, link_status, badges |
+| GET | `/api/teams/{team_id}` | Team, its members, and each member's counted and uncounted badges (with reason); `live_score` and `published_score` for the team and each member |
+| GET | `/api/members/{member_id}` | Name, department, year, display_name, league, platform_points, last_success_at, link_status, badges, `live_score`, `published_score` |
+
+On the detail endpoints:
+
+- `live_score` is computed now, from the stored badges and the current `scoring.yaml`.
+- `published_score` (with `published_rank` and `published_run_id`) is the score in the latest published run, which is what the leaderboard shows. It is `null` for anyone outside that run's top `LEADERBOARD_SIZE`. In team mode, members have a `published_score` but no `published_rank`.
+- The two differ after a `scoring.yaml` edit, or when a run was rejected.
 
 Admin endpoints require the header `X-Admin-Token: $ADMIN_TOKEN`. They return 401 when the header is missing, 403 when it is wrong, and 503 when no token is configured.
 
@@ -167,6 +174,7 @@ Interactive docs are at `/docs`.
 | `LEADERBOARD_MODE` | `auto` | `auto`, `team` or `solo` |
 | `LEADERBOARD_SIZE` | `50` | Standings stored per run |
 | `MIN_SUCCESS_RATIO` | `0.6` | Minimum successful/attempted fetches to publish |
+| `MAX_OTHER_BADGE_RATIO` | `0.5` | Reject the run if more than this share of fetched badges is category `other` |
 | `SCORING_CONFIG` | `scoring.yaml` | Path to the scoring rules |
 | `RUN_LOCK_TIMEOUT_HOURS` | `2` | After this, a `running` run is treated as abandoned |
 | `CONTACT_EMAIL` | `organizers@example.edu` | Put into the User-Agent |
@@ -209,10 +217,41 @@ The image is `python:3.11-slim` and runs as a non-root `app` user, with `/app/da
 
 ### Render / Railway
 
-- Deploy from the repo with the Dockerfile. Both platforms set `$PORT`, which the image honours.
-- **Render:** attach a persistent disk mounted at `/app/data`, or use a managed MySQL and set `DATABASE_URL`. Run a single instance, or set `ENABLE_SCHEDULER=false` on extra ones.
-- **Railway:** add a volume at `/app/data`, or a MySQL plugin, and set `DATABASE_URL=mysql+pymysql://…`.
+- Deploy from the repo with the Dockerfile. Both platforms set `$PORT`, which the server and the container `HEALTHCHECK` both honour.
+- **SQLite needs a persistent disk.** Both platforms wipe the container filesystem on every deploy and restart. Without a disk, the database, with every import, badge and published run, is lost each time.
+  - **Render:** attach a persistent disk mounted at `/app/data` (paid instance types), or use a managed MySQL and set `DATABASE_URL`.
+  - **Railway:** add a volume mounted at `/app/data`, or a MySQL plugin with `DATABASE_URL=mysql+pymysql://…`.
+- Run a single instance, or set `ENABLE_SCHEDULER=false` on extra ones.
 - Set `ADMIN_TOKEN`, `CONTACT_EMAIL` and `CORS_ORIGINS` (your frontend's origin) in the dashboard. Upload responses with `POST /api/admin/import`.
+
+### Hosts that sleep: trigger the refresh from outside
+
+The in-process scheduler only fires while the process is awake. On hosts that spin down idle services (Render's free tier, Railway with sleeping enabled, and similar), the 02:00 job will usually be missed. On those hosts, set `ENABLE_SCHEDULER=false` and have an external cron call the admin endpoint once a day. The request also wakes the service.
+
+```bash
+curl -fsS -X POST -H "X-Admin-Token: $ADMIN_TOKEN" https://your-app.example.com/api/admin/refresh
+```
+
+- **cron-job.org:** create a daily job with method `POST`, that URL, and an `X-Admin-Token` header.
+- **GitHub Actions:** store the token as the repository secret `ADMIN_TOKEN`:
+
+  ```yaml
+  # .github/workflows/refresh.yml
+  name: Daily leaderboard refresh
+  on:
+    schedule: [{cron: "30 20 * * *"}]   # 20:30 UTC = 02:00 IST
+    workflow_dispatch:
+  jobs:
+    refresh:
+      runs-on: ubuntu-latest
+      steps:
+        - run: >
+            curl -fsS --retry 3 --retry-delay 30 -X POST
+            -H "X-Admin-Token: ${{ secrets.ADMIN_TOKEN }}"
+            https://your-app.example.com/api/admin/refresh
+  ```
+
+A cold start can take a while, which is why the workflow uses `--retry`. A `409` means a run is already in progress, which is fine. The refresh itself runs in the background after the `202`, so the host must stay awake for a few minutes. Most hosts keep a service up for at least 15 minutes after a request.
 
 ## Backups
 
