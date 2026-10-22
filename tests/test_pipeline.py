@@ -120,6 +120,22 @@ async def test_parse_error_keeps_badges(settings, tmp_path):
         assert m.link_status == "parse_error" and m.is_stale and len(m.badges) == 1
 
 
+async def test_unrecognised_empty_page_keeps_badges_and_rejects(settings, tmp_path):
+    seed(tmp_path, n=2)
+    good = {UUIDS[i]: page(f"S{i}", (f"{i}", "Skill", "Oct 1, 2026", *SKILL)) for i in range(2)}
+    first = await run_pipeline("test", collectors_for(good, settings)())
+
+    # Simulated redesign: name still renders, badges vanish, no "hasn't earned" text.
+    redesigned = "<html><body><h1>Student</h1><div class='new-badge-grid'></div></body></html>"
+    second = await run_pipeline("test", collectors_for({u: redesigned for u in good}, settings)())
+    assert second["status"] == "rejected" and second["succeeded"] == 0
+    with db.session_scope() as s:
+        for m in s.scalars(select(Member)):
+            assert m.link_status == "parse_error" and m.is_stale and len(m.badges) == 1
+            assert "markup may have changed" in m.last_error
+    assert first["status"] == "published"
+
+
 async def test_low_success_ratio_rejected_previous_still_served(settings, tmp_path):
     from fastapi.testclient import TestClient
 

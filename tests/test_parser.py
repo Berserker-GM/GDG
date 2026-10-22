@@ -1,3 +1,4 @@
+import re
 from datetime import date
 
 import pytest
@@ -69,13 +70,40 @@ def test_deprecated_badge_keeps_category(multi):
 
 
 def test_empty_profile_is_zero_badges_not_error():
+    # Real markup: lab points and a league, but no badges yet.
     result = parse_profile(read_fixture("profile_empty.html"), URL)
     assert result.status == "ok"
     assert result.display_name == "New Student"
     assert result.member_since == 2026
-    assert result.league is None
-    assert result.platform_points is None
+    assert result.league == "Bronze League"
+    assert result.platform_points == 270
+    assert result.avatar_url == "https://lh3.googleusercontent.com/a/default-avatar=s320-c"
     assert result.badges == []
+
+
+def test_empty_profile_without_league():
+    html = re.sub(r"<div class='profile-league'>.*?</div>", "", read_fixture("profile_empty.html"), flags=re.S)
+    result = parse_profile(html, URL)
+    assert result.league is None and result.platform_points is None and result.badges == []
+
+
+@pytest.mark.parametrize("phrase", ["hasn't earned any badges yet", "hasn’t earned any badges yet", "HASN'T EARNED ANY BADGES YET"])
+def test_empty_text_variants(phrase):
+    html = read_fixture("profile_empty.html").replace("hasn&#39;t earned any badges yet", phrase)
+    assert parse_profile(html, URL).badges == []
+
+
+def test_zero_badges_without_empty_text_is_parse_error():
+    html = read_fixture("profile_empty.html").replace("New Student hasn&#39;t earned any badges yet.", "")
+    with pytest.raises(ParseError, match="markup may have changed"):
+        parse_profile(html, URL)
+
+
+def test_badge_links_restyled_away_is_parse_error():
+    # Badge cards still render, but neither link pattern nor dialogs are recognisable.
+    html = re.sub(r'href="[^"]*/badges/\d+"', 'href="#"', read_fixture("profile_multi.html"))
+    with pytest.raises(ParseError):
+        parse_profile(html, URL)
 
 
 def test_page_without_h1_is_parse_error():

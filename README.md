@@ -125,7 +125,8 @@ min_team_members: 1         # teams with fewer active members are not ranked
 3. **Fetch.** It fetches every active member with a supported link, with `FETCH_CONCURRENCY` parallel requests and a `FETCH_DELAY_SECONDS` pause after each one. It sends an honest `User-Agent` containing `CONTACT_EMAIL`. Failed requests are retried up to `FETCH_MAX_RETRIES` times, with exponential backoff and jitter, on timeouts, connection errors, 429 and 5xx; `Retry-After` is respected. A 404 means `not_found` and is not retried.
 4. **Save results.**
    - **On success,** new badges are inserted, changed ones updated and vanished ones deleted. `first_seen_at` is preserved as evidence for disputes.
-   - **On failure** (`fetch_error`, `not_found`, or `parse_error` when there is no `<h1>`), the member's previous badges are kept and marked `stale`. A failure never counts as zero badges.
+   - **On failure** (`fetch_error`, `not_found` or `parse_error`), the member's previous badges are kept and marked `stale`. A failure never counts as zero badges.
+   - **Parse errors** come from two cases: the page has no `<h1>`, or it has no badges and also lacks the "…hasn't earned any badges yet" text. Zero badges is trusted only when the page says so, so a redesign of the badge section makes the run fail validation instead of silently zeroing everyone. An empty profile can still show a league and points, because points also come from labs.
 5. **Score and rank,** then keep the top `LEADERBOARD_SIZE`.
 6. **Validate.** The run is published only if `succeeded / attempted >= MIN_SUCCESS_RATIO`. Otherwise it is `rejected`, and the API keeps serving the previous published run. Standings are written in the same transaction that sets the status.
 

@@ -20,6 +20,7 @@ EARNED_RE = re.compile(r"Earned\s+([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),\s*(\d{4})"
 MEMBER_SINCE_RE = re.compile(r"Member since\s+(\d{4})", re.IGNORECASE)
 POINTS_RE = re.compile(r"([\d,]+)\s*points?", re.IGNORECASE)
 LEVEL_RE = re.compile(r"\b(introductory|intermediate|advanced)\b", re.IGNORECASE)
+NO_BADGES_RE = re.compile(r"hasn['’`]?t earned any badges", re.IGNORECASE)
 
 GAME_BADGE = "game_badge"
 SKILL_BADGE = "skill_badge"
@@ -185,4 +186,9 @@ def parse_profile(html: str, url: str) -> ProfileResult:
                 level=level,
             )
         )
+
+    # Zero badges is only trusted when the page says so. Otherwise the badge markup has probably
+    # changed, and reporting zero would silently wipe everyone's score.
+    if not result.badges and not NO_BADGES_RE.search(soup.get_text(" ")):
+        raise ParseError("No badges found and no \"hasn't earned any badges yet\" text; markup may have changed")
     return result
