@@ -11,6 +11,7 @@ import shutil
 import tempfile
 from collections import Counter
 from contextlib import asynccontextmanager
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterator
@@ -28,7 +29,7 @@ from app.importer import FormImportError, import_form
 from app.leaderboard import active_members, badge_detail, member_score, resolve_mode, sorted_badges
 from app.models import RUN_PUBLISHED, RUN_RUNNING, Member, Run, Standing, Team
 from app.pipeline import RunInProgress, begin_run, execute_run, is_running_in_process
-from app.scoring import ScoringConfig
+from app.scoring import ScoringConfig, team_entry
 
 log = logging.getLogger(__name__)
 
@@ -142,6 +143,23 @@ def _run_with_standings(run: Run, limit: int) -> dict[str, Any]:
     }
 
 
+@dataclass
+class PublishedScores:
+    run_id: int | None
+    teams: dict[int, tuple[int | None, float]] = field(default_factory=dict)  # id -> (rank, score)
+    members: dict[int, tuple[int | None, float]] = field(default_factory=dict)
+
+
+def _latest_published(session: Session) -> Run | None:
+    return session.scalars(
+        select(Run)
+        .where(Run.status == RUN_PUBLISHED)
+        .order_by(Run.published_at.desc(), Run.id.desc())
+        .options(selectinload(Run.standings))
+        .limit(1)
+    ).first()
+
+
 def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = None) -> FastAPI:
     """``collector_factory`` lets tests inject collectors with a mocked HTTP transport."""
     settings = get_settings()
@@ -163,13 +181,7 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
     # ---------------------------------------------------------------- public
     @app.get("/api/leaderboard")
     def leaderboard(limit: int = Query(50, ge=1, le=500), session: Session = Depends(get_session)):
-        run = session.scalars(
-            select(Run)
-            .where(Run.status == RUN_PUBLISHED)
-            .order_by(Run.published_at.desc(), Run.id.desc())
-            .options(selectinload(Run.standings))
-            .limit(1)
-        ).first()
+        run = _latest_published(session)
         if run is None:
             return {"run_id": None, "published_at": None, "mode": None, "entries": []}
         return _run_with_standings(run, limit)
@@ -221,8 +233,23 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
             raise HTTPException(404, "Run not found")
         return {**_run_with_standings(run, limit), "run": _run_summary(run), "scoring": run.scoring_snapshot}
 
-    def _member_out(m: Member, cfg: ScoringConfig) -> dict[str, Any]:
+    def _published_scores(session: Session) -> PublishedScores:
+        """Scores from the latest published run. Only the top LEADERBOARD_SIZE entries are stored,
+        so anyone outside it has no published score (null)."""
+        run = _latest_published(session)
+        scores = PublishedScores(run_id=run.id if run else None)
+        for s in run.standings if run else []:
+            if s.entity_type == "team":
+                scores.teams[s.entity_id] = (s.rank, s.score)
+                for m in (s.breakdown or {}).get("members", []):
+                    scores.members[m["member_id"]] = (None, m["score"])
+            else:
+                scores.members[s.entity_id] = (s.rank, s.score)
+        return scores
+
+    def _member_out(m: Member, cfg: ScoringConfig, published: PublishedScores) -> dict[str, Any]:
         badges = [badge_detail(b, cfg) for b in sorted_badges(m)]
+        rank, score = published.members.get(m.id, (None, None))
         return {
             "member_id": m.id,
             "name": m.name,
@@ -235,7 +262,9 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
             "link_status": m.link_status,
             "stale": m.is_stale,
             "last_success_at": iso(m.last_success_at),
-            "score": member_score(m, cfg).score,
+            "live_score": member_score(m, cfg).score,
+            "published_score": score,
+            "published_rank": rank,
             "counted_badges": [b for b in badges if b["counted"]],
             "uncounted_badges": [b for b in badges if not b["counted"]],
         }
@@ -250,11 +279,19 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
         if team is None:
             raise HTTPException(404, "Team not found")
         cfg = _scoring()
+        published = _published_scores(session)
         members = [m for m in team.members if m.active]
+        rank, score = published.teams.get(team.id, (None, None))
         return {
             "team_id": team.id,
             "name": team.name,
-            "members": [_member_out(m, cfg) for m in sorted(members, key=lambda m: m.name.lower())],
+            "live_score": team_entry(team.id, team.name, [member_score(m, cfg) for m in members], cfg).score,
+            "published_score": score,
+            "published_rank": rank,
+            "published_run_id": published.run_id,
+            "members": [
+                _member_out(m, cfg, published) for m in sorted(members, key=lambda m: m.name.lower())
+            ],
         }
 
     @app.get("/api/members/{member_id}")
@@ -264,7 +301,9 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
         ).first()
         if member is None or not member.active:
             raise HTTPException(404, "Member not found")
-        out = _member_out(member, _scoring())
+        published = _published_scores(session)
+        out = _member_out(member, _scoring(), published)
+        out["published_run_id"] = published.run_id
         out["team"] = {"team_id": member.team.id, "name": member.team.name} if member.team else None
         out["badges"] = sorted(
             out["counted_badges"] + out["uncounted_badges"],

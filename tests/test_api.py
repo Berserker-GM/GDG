@@ -79,6 +79,61 @@ def test_team_and_member_detail(client, settings):
     assert client.get("/api/teams/99999").status_code == 404
 
 
+def test_live_and_published_scores(client, settings):
+    from pathlib import Path
+
+    with db.session_scope() as s:
+        team_id = s.scalars(select(Team).where(Team.name == "Alpha")).one().id
+        member_id = s.scalars(select(Member).where(Member.usn == "1BY23CS001")).one().id
+    run_id = client.get("/api/leaderboard").json()["run_id"]
+
+    # Member 1 has a skill (10), a course (3) and a deprecated game badge (5)
+    member = client.get(f"/api/members/{member_id}").json()
+    assert "score" not in member
+    assert member["live_score"] == member["published_score"] == 18
+    assert member["published_run_id"] == run_id
+    assert member["published_rank"] is None  # team mode: members are not ranked individually
+
+    team = client.get(f"/api/teams/{team_id}").json()
+    standing = next(e for e in client.get("/api/leaderboard").json()["entries"] if e["id"] == team_id)
+    assert team["live_score"] == team["published_score"] == standing["score"]
+    assert team["published_rank"] == standing["rank"] and team["published_run_id"] == run_id
+    assert all(m["live_score"] == m["published_score"] for m in team["members"])
+
+    # Scoring change: live moves, published stays until the next published run.
+    Path(settings.scoring_config).write_text("points: {skill_badge: 100}\n", encoding="utf-8")
+    member = client.get(f"/api/members/{member_id}").json()
+    assert member["live_score"] == 108 and member["published_score"] == 18
+    team = client.get(f"/api/teams/{team_id}").json()
+    assert team["live_score"] > team["published_score"]
+
+
+async def test_published_score_null_outside_top_n(settings, tmp_path, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setenv("LEADERBOARD_SIZE", "2")
+    get_settings.cache_clear()
+    rows = [form_row(f"U{i}", f"S{i}", profile_url(i)) for i in range(3)]
+    with db.session_scope() as s:
+        import_form(s, write_form(tmp_path / "f.xlsx", rows))
+    pages = {UUIDS[i]: badge_page(f"S{i}", [(f"{j}{i}", "Skill", "Oct 1, 2026", *SKILL) for j in range(3 - i)])
+             for i in range(3)}
+
+    with TestClient(create_app()) as client:
+        with db.session_scope() as s:
+            ids = {m.usn: m.id for m in s.scalars(select(Member))}
+        # Nothing published yet
+        before = client.get(f"/api/members/{ids['U0']}").json()
+        assert before["published_score"] is None and before["published_run_id"] is None
+
+        await run_pipeline("test", collectors_for(pages, get_settings())())
+        top = client.get(f"/api/members/{ids['U0']}").json()
+        assert (top["published_rank"], top["published_score"], top["live_score"]) == (1, 30, 30)
+        outside = client.get(f"/api/members/{ids['U2']}").json()
+        assert outside["published_score"] is None and outside["published_rank"] is None
+        assert outside["live_score"] == 10
+
+
 def test_uncounted_reasons(client, settings, tmp_path):
     from pathlib import Path
 
