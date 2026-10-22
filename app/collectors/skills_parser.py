@@ -21,6 +21,7 @@ MEMBER_SINCE_RE = re.compile(r"Member since\s+(\d{4})", re.IGNORECASE)
 POINTS_RE = re.compile(r"([\d,]+)\s*points?", re.IGNORECASE)
 LEVEL_RE = re.compile(r"\b(introductory|intermediate|advanced)\b", re.IGNORECASE)
 NO_BADGES_RE = re.compile(r"hasn['’`]?t earned any badges", re.IGNORECASE)
+GAME_TITLE_RE = re.compile(r"^Level \d+:|Arcade|Trivia")
 
 GAME_BADGE = "game_badge"
 SKILL_BADGE = "skill_badge"
@@ -59,6 +60,9 @@ def classify(title: str, description: str | None, source_path: str | None) -> tu
         category = GAME_BADGE
     elif path.startswith("/course_templates/"):
         category = SKILL_BADGE if "skill badge" in desc.lower() else COURSE_BADGE
+    elif source_path is None and GAME_TITLE_RE.search(title):
+        # No dialog to go by: arcade/trivia/"Level N:" titles are game badges.
+        category = GAME_BADGE
     else:
         category = OTHER
     deprecated = title.strip().lower().startswith("[deprecated]")
@@ -191,4 +195,10 @@ def parse_profile(html: str, url: str) -> ProfileResult:
     # changed, and reporting zero would silently wipe everyone's score.
     if not result.badges and not NO_BADGES_RE.search(soup.get_text(" ")):
         raise ParseError("No badges found and no \"hasn't earned any badges yet\" text; markup may have changed")
+    # Categories come from the dialogs; if not one badge could be matched to its dialog, the dialog
+    # markup has changed and most badges would silently fall into "other" (0 points).
+    if result.badges and all(b.source_path is None for b in result.badges):
+        raise ParseError(
+            f"None of {len(result.badges)} badges matched a ql-dialog source path; markup may have changed"
+        )
     return result

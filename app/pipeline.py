@@ -144,20 +144,25 @@ async def execute_run(
 
         refs = eligible_profiles(collectors)
         succeeded = 0
+        badges_seen = 0
+        other_badges = 0
         failures: dict[str, int] = {}
 
         async def collect(ref: ProfileRef) -> None:
-            nonlocal succeeded
+            nonlocal succeeded, badges_seen, other_badges
             result = await collectors[ref.platform].fetch(ref)
             apply_result(ref.member_id, result)
             if result.ok:
                 succeeded += 1
+                badges_seen += len(result.badges)
+                other_badges += sum(1 for b in result.badges if b.category == "other")
             else:
                 failures[result.status] = failures.get(result.status, 0) + 1
 
         await asyncio.gather(*(collect(ref) for ref in refs))
         attempted = len(refs)
         ratio = succeeded / attempted if attempted else 0.0
+        other_ratio = other_badges / badges_seen if badges_seen else 0.0
 
         with session_scope() as session:
             mode, entries = compute_entries(session, cfg, settings.leaderboard_mode)
@@ -185,17 +190,26 @@ async def execute_run(
             notes = []
             if failures:
                 notes.append("Failures: " + ", ".join(f"{k}={v}" for k, v in sorted(failures.items())))
-            if attempted and ratio >= settings.min_success_ratio:
+            rejections = []
+            if not attempted:
+                rejections.append("No eligible profiles to fetch.")
+            elif ratio < settings.min_success_ratio:
+                rejections.append(
+                    f"Success ratio {ratio:.2f} below MIN_SUCCESS_RATIO {settings.min_success_ratio:.2f}."
+                )
+            if other_ratio > settings.max_other_badge_ratio:
+                rejections.append(
+                    f"{other_badges} of {badges_seen} badges ({other_ratio:.0%}) were classified 'other', above "
+                    f"MAX_OTHER_BADGE_RATIO {settings.max_other_badge_ratio:.0%}; badge classification markup "
+                    "may have changed."
+                )
+            if rejections:
+                run.status = RUN_REJECTED
+                notes.extend(rejections)
+                notes.append("Previous published leaderboard kept.")
+            else:
                 run.status = RUN_PUBLISHED
                 run.published_at = utcnow()
-            else:
-                run.status = RUN_REJECTED
-                notes.append(
-                    "No eligible profiles to fetch."
-                    if not attempted
-                    else f"Success ratio {ratio:.2f} below MIN_SUCCESS_RATIO {settings.min_success_ratio:.2f}; "
-                    "previous published leaderboard kept."
-                )
             run.notes = " ".join(notes) or None
             run.finished_at = utcnow()
             summary = {
@@ -206,6 +220,8 @@ async def execute_run(
                 "succeeded": succeeded,
                 "failed": attempted - succeeded,
                 "success_ratio": run.success_ratio,
+                "badges_seen": badges_seen,
+                "other_badges": other_badges,
                 "entries": len(ranked),
                 "scoring_hash": run.scoring_hash,
                 "notes": run.notes,

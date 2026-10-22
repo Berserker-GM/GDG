@@ -28,6 +28,7 @@ class Settings:
     leaderboard_mode: str = "auto"
     leaderboard_size: int = 50
     min_success_ratio: float = 0.6
+    max_other_badge_ratio: float = 0.5
     scoring_config: str = "scoring.yaml"
     run_lock_timeout_hours: float = 2.0
 
@@ -58,6 +59,7 @@ class Settings:
             leaderboard_mode=mode,
             leaderboard_size=int(_env("LEADERBOARD_SIZE", "50")),
             min_success_ratio=float(_env("MIN_SUCCESS_RATIO", "0.6")),
+            max_other_badge_ratio=float(_env("MAX_OTHER_BADGE_RATIO", "0.5")),
             scoring_config=_env("SCORING_CONFIG", cls.scoring_config),
             run_lock_timeout_hours=float(_env("RUN_LOCK_TIMEOUT_HOURS", "2")),
             contact_email=contact,

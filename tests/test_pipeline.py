@@ -136,6 +136,43 @@ async def test_unrecognised_empty_page_keeps_badges_and_rejects(settings, tmp_pa
     assert first["status"] == "published"
 
 
+OTHER = ("/focuses/123", "A lab.")
+
+
+async def test_mostly_other_badges_rejects_run(settings, tmp_path):
+    seed(tmp_path, n=2)
+    good = {UUIDS[i]: page(f"S{i}", (f"{i}", "Skill", "Oct 1, 2026", *SKILL)) for i in range(2)}
+    first = await run_pipeline("test", collectors_for(good, settings)())
+
+    # 3 of 5 badges (60%) are "other" even though every fetch succeeds.
+    mostly_other = {
+        UUIDS[0]: page("S0", ("1", "Skill", "Oct 1, 2026", *SKILL), ("901", "Lab A", "Oct 2, 2026", *OTHER),
+                       ("902", "Lab B", "Oct 2, 2026", *OTHER)),
+        UUIDS[1]: page("S1", ("2", "Game", "Oct 1, 2026", *GAME), ("903", "Lab C", "Oct 2, 2026", *OTHER)),
+    }
+    summary = await run_pipeline("test", collectors_for(mostly_other, settings)())
+    assert summary["success_ratio"] == 1.0
+    assert summary["badges_seen"] == 5 and summary["other_badges"] == 3
+    assert summary["status"] == "rejected"
+    assert "3 of 5 badges (60%) were classified 'other'" in summary["notes"]
+    assert "MAX_OTHER_BADGE_RATIO" in summary["notes"]
+
+    from fastapi.testclient import TestClient
+
+    from app.api import create_app
+
+    with TestClient(create_app()) as client:
+        assert client.get("/api/leaderboard").json()["run_id"] == first["run_id"]
+
+
+async def test_half_other_badges_still_publishes(settings, tmp_path):
+    seed(tmp_path, n=1)
+    pages = {UUIDS[0]: page("S0", ("1", "Skill", "Oct 1, 2026", *SKILL), ("904", "Lab", "Oct 2, 2026", *OTHER))}
+    summary = await run_pipeline("test", collectors_for(pages, settings)())
+    assert summary["other_badges"] == 1 and summary["badges_seen"] == 2
+    assert summary["status"] == "published"  # exactly 50% is not "more than 50%"
+
+
 async def test_low_success_ratio_rejected_previous_still_served(settings, tmp_path):
     from fastapi.testclient import TestClient
 

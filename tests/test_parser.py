@@ -119,6 +119,47 @@ def test_fallback_without_profile_badge_class():
     assert result.badges[0].earned_date == date(2025, 10, 31)
 
 
+def test_no_badge_matches_a_dialog_is_parse_error():
+    html = re.sub(r"<ql-dialog.*?</ql-dialog>", "", read_fixture("profile_multi.html"), flags=re.S)
+    with pytest.raises(ParseError, match="ql-dialog"):
+        parse_profile(html, URL)
+
+
+def test_modal_ids_renamed_is_parse_error():
+    # Dialogs still exist but the badge buttons no longer point at them.
+    html = read_fixture("profile_multi.html").replace("modal='public-profile-award-modal-", "data-x='")
+    with pytest.raises(ParseError, match="ql-dialog"):
+        parse_profile(html, URL)
+
+
+def test_single_missing_dialog_uses_title_fallback():
+    html = re.sub(
+        r"<ql-dialog[^>]*id='public-profile-award-modal-0'>.*?</ql-dialog>", "",
+        read_fixture("profile_multi.html"), flags=re.S,
+    )
+    result = parse_profile(html, URL)
+    level3 = result.badges[0]
+    assert level3.title == "Level 3: Generative AI"
+    assert level3.source_path is None and level3.description is None
+    assert level3.category == "game_badge"
+    assert [b.category for b in result.badges[1:]] == ["skill_badge", "course_badge", "skill_badge"]
+
+
+@pytest.mark.parametrize(
+    "title,source,expected",
+    [
+        ("Level 2: Cloud Basics", None, "game_badge"),
+        ("The Arcade Base Camp October", None, "game_badge"),
+        ("Skills Trivia October Week 2", None, "game_badge"),
+        ("Introduction to Generative AI", None, "other"),
+        ("Leveling Up: Something", None, "other"),
+        ("Level 2: Cloud Basics", "/focuses/123", "other"),  # fallback only when the dialog is missing
+    ],
+)
+def test_classify_title_fallback(title, source, expected):
+    assert classify(title, None, source)[0] == expected
+
+
 def test_classify_rules():
     assert classify("x", "anything", "/games/1")[0] == "game_badge"
     assert classify("x", "A Skill Badge course", "/course_templates/1")[0] == "skill_badge"
