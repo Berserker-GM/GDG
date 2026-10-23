@@ -18,7 +18,8 @@ from typing import Any, Callable, Iterator
 
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -177,6 +178,18 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
         ok = db.ping()
         body = {"status": "ok" if ok else "degraded", "database": "ok" if ok else "unreachable"}
         return JSONResponse(body, status_code=200 if ok else 503)
+
+    # --------------------------------------------------------------- frontend
+    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+    if frontend_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
+
+        @app.get("/", response_class=HTMLResponse)
+        def index():
+            html_file = frontend_dir / "index.html"
+            if html_file.exists():
+                return html_file.read_text(encoding="utf-8")
+            return HTMLResponse("<h1>Frontend index.html not found</h1>", status_code=404)
 
     # ---------------------------------------------------------------- public
     @app.get("/api/leaderboard")
