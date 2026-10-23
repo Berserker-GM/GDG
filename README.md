@@ -7,7 +7,7 @@ A small Python service that:
 3. scores students, or teams, on their badges using rules in `scoring.yaml`, and
 4. serves the top 50 over a REST API.
 
-Stack: FastAPI, SQLAlchemy 2 (SQLite by default, MySQL via `DATABASE_URL`), httpx, BeautifulSoup + lxml, APScheduler, openpyxl, PyYAML and pytest.
+Stack: FastAPI, SQLAlchemy 2 (SQLite by default, Postgres or MySQL via `DATABASE_URL`), httpx, BeautifulSoup + lxml, APScheduler, openpyxl, PyYAML and pytest.
 
 > **Student data must never be committed.** `.gitignore` excludes `data/`, `.env`, `*.xlsx` and `*.csv`.
 
@@ -18,7 +18,7 @@ Stack: FastAPI, SQLAlchemy 2 (SQLite by default, MySQL via `DATABASE_URL`), http
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # server deps + pytest; the Docker image only needs requirements.txt
 cp .env.example .env             # then edit ADMIN_TOKEN, CONTACT_EMAIL, ...
 pytest                           # network is fully mocked
 ```
@@ -56,7 +56,7 @@ python scripts/mock_refresh.py      # refresh against a mocked site, then prints
 
 ### Helper scripts for a running server
 
-Both talk to the HTTP API only and need `pip install -r requirements-dev.txt`. Nothing is hardcoded: pass options or set the environment variables.
+Both talk to the HTTP API only and need `pip install -r requirements-dev.txt` (for `requests`). Nothing is hardcoded: pass options or set the environment variables.
 
 ```bash
 # import the form if the DB is empty, trigger a refresh, wait for it, print the board
@@ -188,7 +188,7 @@ Interactive docs are at `/docs`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db`. Postgres: `postgresql://…` (`postgres://` is rewritten automatically) |
+| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db`. Postgres: `postgresql://…?sslmode=require` (`postgres://` is rewritten automatically). On Postgres the tables get Row Level Security with no policies, so the role in `DATABASE_URL` must own them |
 | `LEADERBOARD_MODE` | `auto` | `auto`, `team` or `solo` |
 | `LEADERBOARD_SIZE` | `50` | Standings stored per run |
 | `MIN_SUCCESS_RATIO` | `0.6` | Minimum successful/attempted fetches to publish |
@@ -203,7 +203,7 @@ Interactive docs are at `/docs`.
 | `FETCH_MAX_RETRIES` | `3` | Retries after the first attempt |
 | `FETCH_BACKOFF_BASE` | `2.0` | Backoff base seconds (`base·2^n + jitter`) |
 | `ADMIN_TOKEN` | *(empty: admin disabled)* | Shared secret for admin endpoints |
-| `CORS_ORIGINS` | *(empty)* | Comma-separated allowed origins |
+| `CORS_ORIGINS` | *(empty)* | Comma-separated allowed origins. Leave empty when the frontend is served by this app at `/` |
 | `ENABLE_SCHEDULER` | `true` | Run the daily job in this process |
 | `REFRESH_CRON` | `0 2 * * *` | Crontab for the refresh |
 | `TIMEZONE` | `Asia/Kolkata` | Timezone of the cron expression |
