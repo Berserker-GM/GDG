@@ -1,0 +1,53 @@
+# Daily leaderboard refresh: an alternative to cron-job.org (see docs/RUNBOOK.md, section 6).
+#
+# Disabled by default: it only runs when started by hand (Actions tab -> Daily leaderboard refresh
+# -> Run workflow). To run it every day, uncomment the two `schedule` lines below. Use EITHER this
+# workflow OR cron-job.org, not both (the second call would just get a harmless 409).
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions -> New repository secret):
+#   APP_URL      e.g. https://skill-leaderboard.onrender.com   (no trailing slash needed)
+#   ADMIN_TOKEN  the same value as ADMIN_TOKEN on Render
+name: Daily leaderboard refresh
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "30 20 * * *"   # 20:30 UTC = 02:00 Asia/Kolkata (GitHub cron is always UTC)
+
+permissions: {}
+
+concurrency:
+  group: daily-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_URL: ${{ secrets.APP_URL }}
+      ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+    steps:
+      - name: Check secrets are set
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$ADMIN_TOKEN" ]; then
+            echo "::error::Set the APP_URL and ADMIN_TOKEN repository secrets first."
+            exit 1
+          fi
+
+      - name: Wake the service (Render free instances sleep when idle)
+        run: |
+          curl -sS --fail --max-time 90 --retry 5 --retry-delay 20 --retry-connrefused \
+            -o /dev/null -w "health: HTTP %{http_code}\n" "${APP_URL%/}/health"
+
+      - name: Trigger the refresh
+        run: |
+          code=$(curl -sS --max-time 90 --retry 3 --retry-delay 30 \
+            -o response.json -w "%{http_code}" \
+            -X POST -H "X-Admin-Token: $ADMIN_TOKEN" "${APP_URL%/}/api/admin/refresh")
+          echo "HTTP $code"; cat response.json; echo
+          case "$code" in
+            202) echo "Refresh started. It runs in the background on the server." ;;
+            409) echo "A run is already in progress; nothing to do." ;;
+            *)   echo "::error::Unexpected HTTP $code from /api/admin/refresh"; exit 1 ;;
+          esac
