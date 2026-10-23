@@ -62,7 +62,13 @@ def get_engine() -> Engine:
 def init_db() -> None:
     from app import models  # noqa: F401  (register tables)
 
-    Base.metadata.create_all(get_engine())
+    engine = get_engine()
+    Base.metadata.create_all(engine)
+    if engine.url.get_backend_name() == "postgresql":
+        with engine.connect() as conn:
+            for table in ("teams", "members", "badges", "runs", "standings"):
+                conn.execute(text(f"ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY;"))
+            conn.commit()
 
 
 def new_session() -> Session:
