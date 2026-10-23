@@ -5,6 +5,14 @@ data/
 *.csv
 !tests/fixtures/*.csv
 .env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
 
 # Python
 __pycache__/
