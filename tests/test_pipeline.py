@@ -120,6 +120,24 @@ async def test_parse_error_keeps_badges(settings, tmp_path):
         assert m.link_status == "parse_error" and m.is_stale and len(m.badges) == 1
 
 
+async def test_unexpected_error_for_one_profile_does_not_abort_run(settings, tmp_path):
+    seed(tmp_path, n=3)
+
+    def boom(request):
+        raise RuntimeError("unexpected collector bug")
+
+    pages = {UUIDS[i]: page(f"S{i}", (f"{i}", "Skill", "Oct 1, 2026", *SKILL)) for i in range(2)}
+    pages[UUIDS[2]] = boom
+    summary = await run_pipeline("test", collectors_for(pages, settings)())
+    assert summary["status"] == "published"
+    assert summary["attempted"] == 3 and summary["succeeded"] == 2 and summary["failed"] == 1
+    assert "fetch_error=1" in summary["notes"]
+    with db.session_scope() as s:
+        broken = s.scalars(select(Member).where(Member.usn == "U2")).one()
+        assert broken.link_status == "fetch_error" and broken.is_stale
+        assert "RuntimeError" in broken.last_error
+
+
 async def test_unrecognised_empty_page_keeps_badges_and_rejects(settings, tmp_path):
     seed(tmp_path, n=2)
     good = {UUIDS[i]: page(f"S{i}", (f"{i}", "Skill", "Oct 1, 2026", *SKILL)) for i in range(2)}
