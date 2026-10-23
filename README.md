@@ -9,7 +9,9 @@ A small Python service that:
 
 Stack: FastAPI, SQLAlchemy 2 (SQLite by default, Postgres or MySQL via `DATABASE_URL`), httpx, BeautifulSoup + lxml, APScheduler, openpyxl, PyYAML and pytest.
 
-> **Student data must never be committed.** `.gitignore` excludes `data/`, `.env`, `*.xlsx` and `*.csv`.
+> **Student data must never be committed.** `.gitignore` excludes `data/`, `.env`, `*.xlsx`, `*.csv` and `*.db`.
+
+> **Running the live site?** Follow the step-by-step [operations runbook](docs/RUNBOOK.md): deploying to Render + Supabase, environment variables, the daily refresh, routine tasks, troubleshooting, backups and the pre-launch checklist.
 
 ---
 
@@ -251,25 +253,9 @@ curl -fsS -X POST -H "X-Admin-Token: $ADMIN_TOKEN" https://your-app.example.com/
 ```
 
 - **cron-job.org:** create a daily job with method `POST`, that URL, and an `X-Admin-Token` header.
-- **GitHub Actions:** store the token as the repository secret `ADMIN_TOKEN`:
+- **GitHub Actions:** [`.github/workflows/daily-refresh.yml`](.github/workflows/daily-refresh.yml) does the same with the repository secrets `APP_URL` and `ADMIN_TOKEN`. It ships disabled (manual `workflow_dispatch` only); uncomment its `schedule` line (`30 20 * * *` = 02:00 IST) to turn it on. See [docs/RUNBOOK.md](docs/RUNBOOK.md#6-daily-refresh).
 
-  ```yaml
-  # .github/workflows/refresh.yml
-  name: Daily leaderboard refresh
-  on:
-    schedule: [{cron: "30 20 * * *"}]   # 20:30 UTC = 02:00 IST
-    workflow_dispatch:
-  jobs:
-    refresh:
-      runs-on: ubuntu-latest
-      steps:
-        - run: >
-            curl -fsS --retry 3 --retry-delay 30 -X POST
-            -H "X-Admin-Token: ${{ secrets.ADMIN_TOKEN }}"
-            https://your-app.example.com/api/admin/refresh
-  ```
-
-A cold start can take a while, which is why the workflow uses `--retry`. A `409` means a run is already in progress, which is fine. The refresh itself runs in the background after the `202`, so the host must stay awake for a few minutes. Most hosts keep a service up for at least 15 minutes after a request.
+A cold start can take a while, which is why the workflow first wakes `/health` and uses `--retry`. A `409` means a run is already in progress, which is fine. The refresh itself runs in the background after the `202`, so the host must stay awake for a few minutes. Most hosts keep a service up for at least 15 minutes after a request.
 
 ## Backups
 
