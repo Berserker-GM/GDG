@@ -65,9 +65,19 @@ def init_db() -> None:
     engine = get_engine()
     Base.metadata.create_all(engine)
     if engine.url.get_backend_name() == "postgresql":
+        # Only touch tables that still need it: ALTER TABLE requires ownership, so running it on
+        # every startup would crash a deploy whose role can use, but does not own, the tables.
+        tables = [t.name for t in Base.metadata.sorted_tables]
         with engine.connect() as conn:
-            for table in ("teams", "members", "badges", "runs", "standings"):
-                conn.execute(text(f"ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY;"))
+            pending = conn.execute(
+                text(
+                    "SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                    "WHERE n.nspname = 'public' AND c.relname = ANY(:tables) AND NOT c.relrowsecurity"
+                ),
+                {"tables": tables},
+            ).scalars().all()
+            for table in pending:
+                conn.execute(text(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY'))
             conn.commit()
 
 
