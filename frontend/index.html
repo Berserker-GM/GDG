@@ -113,6 +113,12 @@
   .score-cell{font-size:17px;font-weight:900;letter-spacing:-.04em;color:#202631;white-space:nowrap}
   .score-unit{font-size:9px;font-weight:600;color:#8b94a1;letter-spacing:0;margin-left:4px}
   .row-action{color:#b1b8c2;font-size:18px}
+  tbody tr.team-row{cursor:default}
+  .member-list{display:flex;flex-wrap:wrap;gap:6px;max-width:420px}
+  .member-link{display:inline-flex;align-items:center;gap:6px;border:1px solid #e3e8f0;background:#f8f9fc;border-radius:9px;padding:6px 9px;font-size:11px;font-weight:700;color:#2f3846;transition:border .16s,background .16s}
+  .member-link:hover,.member-link:focus-visible{border-color:#9bbdfb;background:#edf4ff;outline:none}
+  .member-link span{font-weight:600;color:#8992a0;font-size:10px}
+  .badge-fallback{font-size:10px;color:#8792a0;text-align:center;padding:6px;line-height:1.3}
   .empty-state{padding:44px 20px;text-align:center;color:#778191;font-size:13px}
   .empty-state strong{display:block;font-size:15px;color:#303946;margin-bottom:6px}
   .table-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px 20px;color:#8a93a1;font-size:10px;border-top:1px solid #edf0f4}
@@ -170,7 +176,7 @@
     </div>
     <div class="top-actions">
       <div class="campaign-pill"><img src="/static/gdg-logo.png" alt="GDG" style="width:14px;height:14px;object-fit:contain;vertical-align:middle" onerror="this.style.display='none'"> 2026 Campaign</div>
-      <div class="sync-pill" id="syncPill" title="Campaign sync status"><span class="pulse" id="pulseDot"></span> <span id="syncStatus">Live synced</span></div>
+      <div class="sync-pill" id="syncPill" title="Campaign sync status"><span class="pulse yellow" id="pulseDot"></span> <span id="syncStatus">Loading…</span></div>
     </div>
   </header>
 
@@ -188,10 +194,10 @@
         </div>
         <div>
           <div class="stats-grid">
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20M16 5.2a3 3 0 0 1 0 5.6M18 14.5a4 4 0 0 1 3 3.9V20"/></svg>Total participants</div><div class="stat-value" id="totalParticipants">83</div><div class="stat-foot">Learners on the board</div></div>
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 14.8 8.7 21 9.6l-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>Badges earned</div><div class="stat-value" id="totalBadges">7</div><div class="stat-foot">Across the campaign</div></div>
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-6"/><path d="M15 7h4v4"/></svg>Points on display</div><div class="stat-value" id="totalPoints">56</div><div class="stat-foot">From verified learning milestones</div></div>
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last sync</div><div class="stat-value" id="syncTime" style="font-size:24px;letter-spacing:-.035em">09:39 AM</div><div class="stat-foot" id="syncDate">23 Oct 2026 · IST</div></div>
+            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20M16 5.2a3 3 0 0 1 0 5.6M18 14.5a4 4 0 0 1 3 3.9V20"/></svg>Total participants</div><div class="stat-value" id="totalParticipants">—</div><div class="stat-foot">Learners on the board</div></div>
+            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 14.8 8.7 21 9.6l-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>Badges earned</div><div class="stat-value" id="totalBadges">—</div><div class="stat-foot">Across the campaign</div></div>
+            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-6"/><path d="M15 7h4v4"/></svg>Points on display</div><div class="stat-value" id="totalPoints">—</div><div class="stat-foot">From verified learning milestones</div></div>
+            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last sync</div><div class="stat-value" id="syncTime" style="font-size:24px;letter-spacing:-.035em">—</div><div class="stat-foot" id="syncDate">Not published yet</div></div>
           </div>
           <div class="sync-line"><span><strong>Campaign status</strong> · Active</span><span><strong>Scoring</strong> · Badge-weighted points</span></div>
         </div>
@@ -200,20 +206,20 @@
 
     <section aria-labelledby="podium-heading">
       <div class="section-heading"><div><div class="section-kicker">Leading the way</div><h2 id="podium-heading">Top of the leaderboard</h2><div class="section-sub">The people setting the pace for our cloud community.</div></div><div class="heading-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg>Updated from current filters</div></div>
-      <div class="podium" id="podium"></div>
+      <div class="podium" id="podium"><div class="empty-state" style="grid-column:1/-1">Loading leaderboard…</div></div>
     </section>
 
     <section aria-labelledby="rankings-heading">
-      <div class="section-heading"><div><div class="section-kicker">Find your place</div><h2 id="rankings-heading">Student rankings</h2><div class="section-sub">Search students, narrow the list, and open a profile to view earned badges.</div></div></div>
+      <div class="section-heading"><div><div class="section-kicker">Find your place</div><h2 id="rankings-heading">Student rankings</h2><div class="section-sub" id="rankingsSub">Search students, narrow the list, and open a profile to view earned badges.</div></div></div>
       <div class="controls">
-        <label class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input id="searchInput" type="search" placeholder="Search by student name…" autocomplete="off" aria-label="Search by student name"/><span class="search-shortcut">⌕</span></label>
-        <select class="filter-select" id="departmentFilter" aria-label="Filter by department"><option value="all">All departments</option></select>
-        <select class="filter-select" id="yearFilter" aria-label="Filter by year of study"><option value="all">All study years</option><option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option><option value="4">4th year</option></select>
-        <div class="result-count"><strong id="resultCount">50 students</strong> shown</div>
+        <label class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input id="searchInput" type="search" placeholder="Search by student name…" autocomplete="off" aria-label="Search by student name" disabled/><span class="search-shortcut">⌕</span></label>
+        <select class="filter-select" id="departmentFilter" aria-label="Filter by department" disabled><option value="all">All departments</option></select>
+        <select class="filter-select" id="yearFilter" aria-label="Filter by year of study" disabled><option value="all">All study years</option><option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option><option value="4">4th year</option></select>
+        <div class="result-count"><strong id="resultCount">—</strong> shown</div>
       </div>
       <div class="table-panel">
-        <div class="table-head"><div><div class="table-title">Campaign rankings</div><div class="table-caption">Select any student to inspect their badge collection.</div></div><div class="sort-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 6h12M8 12h8M8 18h4M3 6h.01M3 12h.01M3 18h.01"/></svg>Highest score first</div></div>
-        <div class="table-scroll"><table><thead><tr><th>Rank</th><th>Student</th><th>Department / year</th><th>Badge distribution</th><th>Total score</th><th aria-label="Open profile"></th></tr></thead><tbody id="studentRows"></tbody></table><div id="emptyState" class="empty-state" hidden><strong>No students found</strong>Try another name, department, or study year.</div></div>
+        <div class="table-head"><div><div class="table-title">Campaign rankings</div><div class="table-caption" id="tableCaption">Select any student to inspect their badge collection.</div></div><div class="sort-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 6h12M8 12h8M8 18h4M3 6h.01M3 12h.01M3 18h.01"/></svg>Highest score first</div></div>
+        <div class="table-scroll"><table><thead id="tableHead"><tr><th>Rank</th><th>Student</th><th>Department / year</th><th>Badge distribution</th><th>Total score</th><th aria-label="Open profile"></th></tr></thead><tbody id="studentRows"></tbody></table><div id="tableMessage" class="empty-state" role="status"><strong id="tableMessageTitle">Loading leaderboard…</strong><span id="tableMessageDetail"></span></div><div id="emptyState" class="empty-state" hidden><strong id="emptyStateTitle">No students found</strong><span id="emptyStateDetail">Try another name, department, or study year.</span></div></div>
         <div class="table-footer"><div class="legend"><span class="legend-item"><i class="legend-square" style="background:#4285f4"></i>Skill badges (10 pts)</span><span class="legend-item"><i class="legend-square" style="background:#34a853"></i>Course badges (3 pts)</span><span class="legend-item"><i class="legend-square" style="background:#fbbc04"></i>Game badges (5 pts)</span></div><div class="footer-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Live synced with Google Skills Boost public profile validation.</div></div>
       </div>
     </section>
@@ -225,8 +231,8 @@
   <div class="modal">
     <div class="modal-head">
       <div class="modal-topline"><div class="modal-kicker">Student achievement profile</div><button class="close-btn" id="closeModal" aria-label="Close profile">×</button></div>
-      <div class="modal-profile"><div class="avatar a1" id="modalAvatar">MU</div><div><div class="modal-student-name" id="modalStudentName">Manya U</div><div class="modal-subtitle" id="modalSubtitle">ECE · 3rd year</div></div></div>
-      <div class="modal-summary"><div class="summary-pill"><strong id="modalRank">#1</strong> rank</div><div class="summary-pill"><strong id="modalScore">50</strong> points</div><div class="summary-pill"><strong id="modalBadgeCount">5</strong> badges earned</div></div>
+      <div class="modal-profile"><div class="avatar a1" id="modalAvatar"></div><div><div class="modal-student-name" id="modalStudentName"></div><div class="modal-subtitle" id="modalSubtitle"></div></div></div>
+      <div class="modal-summary"><div class="summary-pill"><strong id="modalRank">—</strong> rank</div><div class="summary-pill"><strong id="modalScore">—</strong> points</div><div class="summary-pill"><strong id="modalBadgeCount">—</strong> badges earned</div></div>
     </div>
     <div class="modal-body"><div class="modal-section-head"><h3>Google Cloud badges</h3><span id="modalBadgeLabel">Verified badge records</span></div><div class="badge-grid" id="modalBadges"></div></div>
     <div class="modal-foot">Badge records verified automatically from Google Cloud Skills Boost public profile links. <a href="https://www.skills.google/credentials/skill_badge" target="_blank" rel="noopener noreferrer">Explore Google Cloud skill badges ↗</a></div>
@@ -247,92 +253,162 @@ const deptNames = {
   ISE: 'Information Science'
 };
 
-const initialSnapshot = [
-  {"id": 33, "name": "Manya U", "dept": "ECE", "year": 3, "score": 50, "badges": {"skill": 5, "completion": 0, "genai": 0}, "avatar": "MU", "color": "a1"},
-  {"id": 44, "name": "Vaishnavi H", "dept": "CSE", "year": 3, "score": 3, "badges": {"skill": 0, "completion": 1, "genai": 0}, "avatar": "VH", "color": "a2"},
-  {"id": 50, "name": "Rohan", "dept": "AI&ML", "year": 2, "score": 3, "badges": {"skill": 0, "completion": 1, "genai": 0}, "avatar": "RO", "color": "a3"},
-  {"id": 59, "name": "Aaditya Singh", "dept": "AI&ML", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AS", "color": "a4"},
-  {"id": 9, "name": "Aditya Nagaraj Devadiga", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AD", "color": "a5"},
-  {"id": 83, "name": "Ahana Shrothri", "dept": "ECE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AS", "color": "a6"},
-  {"id": 67, "name": "Ankush Kumar Kushwaha", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AK", "color": "a7"},
-  {"id": 57, "name": "Anushka Uppin", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AU", "color": "a8"},
-  {"id": 1, "name": "Archisha Gupta", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AG", "color": "a9"},
-  {"id": 5, "name": "Archit Kumar", "dept": "ECE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AK", "color": "a10"},
-  {"id": 13, "name": "Arya Manish Pandey", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AP", "color": "a1"},
-  {"id": 71, "name": "Ashmit Thakur", "dept": "CSBS", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AT", "color": "a2"},
-  {"id": 7, "name": "Ayush Kumar Yadav", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AY", "color": "a3"},
-  {"id": 36, "name": "Azman Shaikh", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "AS", "color": "a4"},
-  {"id": 65, "name": "Bhavya Motwani", "dept": "EEE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "BM", "color": "a5"},
-  {"id": 10, "name": "Bhoomika S", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "BS", "color": "a6"},
-  {"id": 77, "name": "Bhuvaneshwari", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "BH", "color": "a7"},
-  {"id": 73, "name": "C M KALYAN GOWDA", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "CG", "color": "a8"},
-  {"id": 16, "name": "Chamala Giridhar Reddy", "dept": "CSBS", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "CR", "color": "a9"},
-  {"id": 31, "name": "Chirag A", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "CA", "color": "a10"},
-  {"id": 32, "name": "Deependra Reddy Yenumula", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "DY", "color": "a1"},
-  {"id": 11, "name": "Devansh Vikram singh", "dept": "AI&ML", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "DS", "color": "a2"},
-  {"id": 72, "name": "Dhruv Bansal", "dept": "CSBS", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "DB", "color": "a3"},
-  {"id": 20, "name": "ESHAN PEREIRA", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "EP", "color": "a4"},
-  {"id": 3, "name": "Galaba Mohit", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "GM", "color": "a5"},
-  {"id": 25, "name": "Harsh Srivastav", "dept": "CSBS", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "HS", "color": "a6"},
-  {"id": 53, "name": "Harshitha MV", "dept": "Mechanical", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "HM", "color": "a7"},
-  {"id": 19, "name": "Hemachandru R", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "HR", "color": "a8"},
-  {"id": 58, "name": "I Mirza Hussain", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "IH", "color": "a9"},
-  {"id": 45, "name": "Jeevan M", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "JM", "color": "a10"},
-  {"id": 35, "name": "K T SUDEEP", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "KS", "color": "a1"},
-  {"id": 26, "name": "Keshav jha", "dept": "CSBS", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "KJ", "color": "a2"},
-  {"id": 62, "name": "Koushik sai", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "KS", "color": "a3"},
-  {"id": 70, "name": "Krish chaudhary", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "KC", "color": "a4"},
-  {"id": 4, "name": "Kriti Baxi", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "KB", "color": "a5"},
-  {"id": 76, "name": "Krutisree Manchuru", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "KM", "color": "a6"},
-  {"id": 60, "name": "Luzain Sara Mansoor", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "LM", "color": "a7"},
-  {"id": 38, "name": "M DHATHRI REDDY", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MD", "color": "a8"},
-  {"id": 15, "name": "Madhura S", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MS", "color": "a9"},
-  {"id": 46, "name": "Mahi Suhalka", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MS", "color": "a10"},
-  {"id": 52, "name": "Mani B M", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MB", "color": "a1"},
-  {"id": 56, "name": "Manjushree H", "dept": "AI&ML", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MH", "color": "a2"},
-  {"id": 29, "name": "Mayank Raj", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MR", "color": "a3"},
-  {"id": 78, "name": "Milind Hanumanthappa Gopala", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MG", "color": "a4"},
-  {"id": 80, "name": "Mohammad Shahid", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MS", "color": "a5"},
-  {"id": 49, "name": "Mohammed Fahad Ishak", "dept": "CSE", "year": 2, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MI", "color": "a6"},
-  {"id": 66, "name": "Mudduchetan M R", "dept": "CSE", "year": 3, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "MR", "color": "a7"},
-  {"id": 43, "name": "Nisarga R S", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "NR", "color": "a8"},
-  {"id": 18, "name": "Nishchit Prakash", "dept": "CSE", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "NP", "color": "a9"},
-  {"id": 64, "name": "Pragna Madhusudhan", "dept": "CSBS", "year": 1, "score": 0, "badges": {"skill": 0, "completion": 0, "genai": 0}, "avatar": "PM", "color": "a10"}
-];
-
 const $ = s => document.querySelector(s);
-const fmt = n => Number(n || 0).toLocaleString('en-IN');
+const fmt = n => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 1 });
 const colors = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10'];
+const DASH = '—';
+const FALLBACK_BADGE_URL = 'https://www.skills.google';
+const BADGE_PLACEHOLDER = '<span class="badge-fallback">Google Cloud<br>Badge</span>';
 
-let students = [...initialSnapshot];
-let currentStudents = [...students].sort((a,b) => b.score - a.score);
+const SOLO_HEAD = '<tr><th>Rank</th><th>Student</th><th>Department / year</th><th>Badge distribution</th><th>Total score</th><th aria-label="Open profile"></th></tr>';
+const TEAM_HEAD = '<tr><th>Rank</th><th>Team</th><th>Members</th><th>Counted badges</th><th>Total score</th></tr>';
+
+// Entries stay in the order the API returned them; ranks come from the API too.
+let mode = 'solo';
+let entries = [];
+let visible = [];
 let lastFocused = null;
-const memberBadgesCache = {};
+let modalToken = 0;
+const memberCache = {};
+
+// Every API-provided value that goes into innerHTML must pass through this.
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"'`]/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
+  })[ch]);
+}
+
+function safeImageUrl(url) {
+  return typeof url === 'string' && url.startsWith('https://') ? url : null;
+}
+
+function safeBadgeUrl(url) {
+  return typeof url === 'string' && url.startsWith('https://www.skills.google/') ? url : FALLBACK_BADGE_URL;
+}
+
+function orDash(value) {
+  return value === null || value === undefined || String(value).trim() === '' ? DASH : String(value);
+}
+
+function rankLabel(rank) {
+  if (rank === null || rank === undefined) return DASH;
+  return rank < 10 ? `0${rank}` : String(rank);
+}
+
+function yearLabel(year) {
+  if (year === null || year === undefined || String(year).trim() === '') return DASH;
+  const y = String(year).trim();
+  if (!/^\d+$/.test(y)) return y;
+  const n = Number(y);
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th';
+  return `${n}${suffix} year`;
+}
+
+function deptLabel(dept) {
+  if (!dept) return DASH;
+  return deptNames[dept] ? `${deptNames[dept]} (${dept})` : dept;
+}
 
 function getInitials(name) {
-  if (!name) return '??';
+  if (!name || !name.trim()) return '?';
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-function badgeCount(s) {
-  return (s.badges.skill || 0) + (s.badges.completion || 0) + (s.badges.genai || 0);
+function toStudent(e, idx) {
+  const counts = (e.breakdown && e.breakdown.counts_by_category) || {};
+  return {
+    id: e.id,
+    rank: e.rank,
+    name: e.name || '',
+    dept: e.department || '',
+    year: e.year ?? null,
+    score: e.score || 0,
+    counted: e.counted_badges || 0,
+    badges: { skill: counts.skill_badge || 0, course: counts.course_badge || 0, game: counts.game_badge || 0 },
+    avatar: getInitials(e.name),
+    color: colors[idx % colors.length]
+  };
 }
 
-function rankFor(s) {
-  return currentStudents.findIndex(x => x.id === s.id) + 1;
+function toTeam(e, idx) {
+  return {
+    id: e.id,
+    rank: e.rank,
+    name: e.name || '',
+    score: e.score || 0,
+    counted: e.counted_badges || 0,
+    members: (e.members || []).map(m => ({ id: m.member_id, name: m.name || '', score: m.score || 0 })),
+    avatar: getInitials(e.name),
+    color: colors[idx % colors.length]
+  };
+}
+
+function setControlsEnabled(enabled) {
+  ['#searchInput', '#departmentFilter', '#yearFilter'].forEach(sel => { $(sel).disabled = !enabled; });
+}
+
+function setSyncState(label, ok) {
+  $('#syncStatus').textContent = label;
+  $('#pulseDot').className = ok ? 'pulse' : 'pulse yellow';
+}
+
+// Clears every rendered entry and shows a message instead. Never falls back to cached or sample data.
+function showMessage(title, detail, syncLabel) {
+  entries = [];
+  visible = [];
+  setControlsEnabled(false);
+  setSyncState(syncLabel, false);
+  const podiumMsg = document.createElement('div');
+  podiumMsg.className = 'empty-state';
+  podiumMsg.style.gridColumn = '1/-1';
+  podiumMsg.textContent = title;
+  $('#podium').replaceChildren(podiumMsg);
+  $('#studentRows').replaceChildren();
+  $('#emptyState').hidden = true;
+  $('#tableMessage').hidden = false;
+  $('#tableMessageTitle').textContent = title;
+  $('#tableMessageDetail').textContent = detail;
+  $('#resultCount').textContent = '0';
+  ['#totalParticipants', '#totalBadges', '#totalPoints', '#syncTime'].forEach(sel => { $(sel).textContent = DASH; });
+  $('#syncDate').textContent = title;
+}
+
+function setMode(next) {
+  mode = next;
+  const team = mode === 'team';
+  $('#departmentFilter').hidden = team;
+  $('#yearFilter').hidden = team;
+  $('#rankings-heading').textContent = team ? 'Team rankings' : 'Student rankings';
+  $('#rankingsSub').textContent = team
+    ? 'Search teams or members, and open a member to view their earned badges.'
+    : 'Search students, narrow the list, and open a profile to view earned badges.';
+  $('#tableCaption').textContent = team
+    ? 'Select any member to inspect their badge collection.'
+    : 'Select any student to inspect their badge collection.';
+  const placeholder = team ? 'Search by team or member name…' : 'Search by student name…';
+  $('#searchInput').placeholder = placeholder;
+  $('#searchInput').setAttribute('aria-label', placeholder.replace('…', ''));
+  $('#tableHead').innerHTML = team ? TEAM_HEAD : SOLO_HEAD;
+  $('#emptyStateTitle').textContent = team ? 'No teams found' : 'No students found';
+  $('#emptyStateDetail').textContent = team
+    ? 'Try another team or member name.'
+    : 'Try another name, department, or study year.';
 }
 
 function populateDepartments(deptList) {
   const sel = $('#departmentFilter');
   const currentVal = sel.value;
-  sel.innerHTML = '<option value="all">All departments</option>';
+  const all = document.createElement('option');
+  all.value = 'all';
+  all.textContent = 'All departments';
+  sel.replaceChildren(all);
   const sorted = [...new Set(deptList.filter(Boolean))].sort();
   sorted.forEach(d => {
     const opt = document.createElement('option');
     opt.value = d;
-    opt.textContent = deptNames[d] ? `${deptNames[d]} (${d})` : d;
+    opt.textContent = deptLabel(d);
     sel.appendChild(opt);
   });
   if (sorted.includes(currentVal)) {
@@ -342,183 +418,254 @@ function populateDepartments(deptList) {
 
 function renderPodium() {
   const wrap = $('#podium');
-  const picks = currentStudents.slice(0, 3);
+  const picks = visible.slice(0, 3);
   if (!picks.length) {
-    wrap.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No students match these filters.</div>';
+    wrap.innerHTML = `<div class="empty-state" style="grid-column:1/-1">No ${mode === 'team' ? 'teams' : 'students'} match these filters.</div>`;
     return;
   }
-  const order = [picks[1], picks[0], picks[2]].filter(Boolean);
   const placeMap = {
-    2: { num: '02', label: '2ND PLACE', medal: 'Ⅱ', cls: 'second' },
-    1: { num: '01', label: '1ST PLACE', medal: '★', cls: 'first' },
-    3: { num: '03', label: '3RD PLACE', medal: 'Ⅲ', cls: 'third' }
+    1: { label: '1ST PLACE', medal: '★' },
+    2: { label: '2ND PLACE', medal: 'Ⅱ' },
+    3: { label: '3RD PLACE', medal: 'Ⅲ' }
   };
-  wrap.innerHTML = order.map(s => {
-    const rank = rankFor(s);
-    const p = placeMap[rank] || { label: `#${rank}`, medal: `${rank}`, cls: '' };
-    return `<button class="podium-card ${p.cls}" data-student="${s.id}" aria-label="Open ${s.name}'s badge profile">
-      <span class="podium-rank">${p.label}</span>
-      <span class="medal">${p.medal}</span>
-      <span class="avatar ${s.color}">${s.avatar}</span>
-      <span class="podium-name">${s.name}</span>
-      <span class="podium-detail">${s.dept || 'Engineering'} · Year ${s.year || 1}</span>
-      <span class="podium-points"><strong>${fmt(s.score)}</strong><span>points</span></span>
+  const slotClass = ['first', 'second', 'third'];
+  const order = [picks[1], picks[0], picks[2]].filter(Boolean);
+  wrap.innerHTML = order.map(item => {
+    const cls = slotClass[picks.indexOf(item)];
+    const p = placeMap[item.rank] || { label: `RANK ${rankLabel(item.rank)}`, medal: orDash(item.rank) };
+    const name = escapeHtml(orDash(item.name));
+    const detail = mode === 'team'
+      ? `${item.members.length} ${item.members.length === 1 ? 'member' : 'members'}`
+      : `${escapeHtml(orDash(item.dept))} · ${escapeHtml(yearLabel(item.year))}`;
+    const body = `<span class="podium-rank">${escapeHtml(p.label)}</span>
+      <span class="medal">${escapeHtml(p.medal)}</span>
+      <span class="avatar ${item.color}">${escapeHtml(item.avatar)}</span>
+      <span class="podium-name">${name}</span>
+      <span class="podium-detail">${detail}</span>
+      <span class="podium-points"><strong>${escapeHtml(fmt(item.score))}</strong><span>points</span></span>
       <span class="podium-badges">
         <svg class="mini-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.7-.9A4.5 4.5 0 0 0 7 18Z"/>
-        </svg>${badgeCount(s)} badges
-      </span>
-    </button>`;
+        </svg>${escapeHtml(item.counted)} badges
+      </span>`;
+    if (mode === 'team') {
+      return `<div class="podium-card ${cls}">${body}</div>`;
+    }
+    return `<button class="podium-card ${cls}" data-student="${escapeHtml(item.id)}" aria-label="Open ${name}'s badge profile">${body}</button>`;
   }).join('');
 
   wrap.querySelectorAll('[data-student]').forEach(b => {
-    b.addEventListener('click', () => openModal(Number(b.dataset.student)));
+    b.addEventListener('click', () => openStudent(Number(b.dataset.student)));
   });
 }
 
-function renderRows() {
+function renderStudentRows() {
   const tbody = $('#studentRows');
-  const empty = $('#emptyState');
-  $('#resultCount').textContent = `${currentStudents.length} ${currentStudents.length === 1 ? 'student' : 'students'}`;
-  empty.hidden = currentStudents.length > 0;
-
-  tbody.innerHTML = currentStudents.map((s, i) => {
-    const fullDept = deptNames[s.dept] ? `<span style="color:#929aa7;font-weight:500">· ${deptNames[s.dept]}</span>` : '';
-    const yr = s.year || 1;
-    const yrSuffix = yr === 1 ? 'st' : yr === 2 ? 'nd' : yr === 3 ? 'rd' : 'th';
-    return `<tr data-student="${s.id}" tabindex="0" aria-label="Open ${s.name}'s badge profile">
-      <td class="rank-cell"><span class="rank-number">${i + 1 < 10 ? '0' : ''}${i + 1}</span></td>
+  tbody.innerHTML = visible.map(s => {
+    const name = escapeHtml(orDash(s.name));
+    const dept = escapeHtml(orDash(s.dept));
+    const fullDept = deptNames[s.dept] ? `<span style="color:#929aa7;font-weight:500">· ${escapeHtml(deptNames[s.dept])}</span>` : '';
+    const year = escapeHtml(yearLabel(s.year));
+    return `<tr data-student="${escapeHtml(s.id)}" tabindex="0" aria-label="Open ${name}'s badge profile">
+      <td class="rank-cell"><span class="rank-number">${escapeHtml(rankLabel(s.rank))}</span></td>
       <td>
         <div class="student-cell">
-          <span class="avatar ${s.color}">${s.avatar}</span>
+          <span class="avatar ${s.color}">${escapeHtml(s.avatar)}</span>
           <span>
-            <div class="student-name">${s.name}</div>
-            <div class="student-tag">${s.dept || 'Engineering'} · Year ${yr}</div>
+            <div class="student-name">${name}</div>
+            <div class="student-tag">${dept} · ${year}</div>
           </span>
         </div>
       </td>
       <td>
-        <div class="dept-main">${s.dept || '—'} ${fullDept}</div>
-        <span class="year-tag">${yr}${yrSuffix} year</span>
+        <div class="dept-main">${dept} ${fullDept}</div>
+        <span class="year-tag">${year}</span>
       </td>
       <td>
         <div class="badge-chips">
-          <span class="badge-chip blue"><i class="chip-dot"></i>${s.badges.skill || 0} Skill</span>
-          <span class="badge-chip green"><i class="chip-dot"></i>${s.badges.completion || 0} Course</span>
-          ${s.badges.genai ? `<span class="badge-chip yellow"><i class="chip-dot"></i>${s.badges.genai} Game</span>` : ''}
+          <span class="badge-chip blue"><i class="chip-dot"></i>${escapeHtml(s.badges.skill)} Skill</span>
+          <span class="badge-chip green"><i class="chip-dot"></i>${escapeHtml(s.badges.course)} Course</span>
+          ${s.badges.game ? `<span class="badge-chip yellow"><i class="chip-dot"></i>${escapeHtml(s.badges.game)} Game</span>` : ''}
         </div>
       </td>
-      <td class="score-cell">${fmt(s.score)}<span class="score-unit">pts</span></td>
+      <td class="score-cell">${escapeHtml(fmt(s.score))}<span class="score-unit">pts</span></td>
       <td class="row-action">↗</td>
     </tr>`;
   }).join('');
 
   tbody.querySelectorAll('[data-student]').forEach(row => {
-    row.addEventListener('click', () => openModal(Number(row.dataset.student)));
+    row.addEventListener('click', () => openStudent(Number(row.dataset.student)));
     row.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        openModal(Number(row.dataset.student));
+        openStudent(Number(row.dataset.student));
       }
     });
   });
 }
 
+function renderTeamRows() {
+  const tbody = $('#studentRows');
+  tbody.innerHTML = visible.map(t => {
+    const members = t.members.length
+      ? t.members.map(m => {
+          const memberName = escapeHtml(orDash(m.name));
+          return `<button type="button" class="member-link" data-member="${escapeHtml(m.id)}" data-team="${escapeHtml(t.id)}" aria-label="Open ${memberName}'s badge profile">${memberName} <span>${escapeHtml(fmt(m.score))} pts</span></button>`;
+        }).join('')
+      : DASH;
+    return `<tr class="team-row">
+      <td class="rank-cell"><span class="rank-number">${escapeHtml(rankLabel(t.rank))}</span></td>
+      <td>
+        <div class="student-cell">
+          <span class="avatar ${t.color}">${escapeHtml(t.avatar)}</span>
+          <span>
+            <div class="student-name">${escapeHtml(orDash(t.name))}</div>
+            <div class="student-tag">${t.members.length} ${t.members.length === 1 ? 'member' : 'members'}</div>
+          </span>
+        </div>
+      </td>
+      <td><div class="member-list">${members}</div></td>
+      <td><span class="badge-chip blue"><i class="chip-dot"></i>${escapeHtml(t.counted)} counted</span></td>
+      <td class="score-cell">${escapeHtml(fmt(t.score))}<span class="score-unit">pts</span></td>
+    </tr>`;
+  }).join('');
+
+  tbody.querySelectorAll('[data-member]').forEach(btn => {
+    btn.addEventListener('click', () => openTeamMember(Number(btn.dataset.team), Number(btn.dataset.member)));
+  });
+}
+
+function renderRows() {
+  const noun = mode === 'team' ? ['team', 'teams'] : ['student', 'students'];
+  $('#resultCount').textContent = `${visible.length} ${visible.length === 1 ? noun[0] : noun[1]}`;
+  $('#tableMessage').hidden = true;
+  $('#emptyState').hidden = visible.length > 0;
+  if (mode === 'team') renderTeamRows();
+  else renderStudentRows();
+}
+
+// Filters only hide rows; order and rank numbers stay exactly as the API returned them.
 function updateFilters() {
   const q = $('#searchInput').value.trim().toLowerCase();
-  const dept = $('#departmentFilter').value;
-  const year = $('#yearFilter').value;
-
-  currentStudents = students.filter(s => {
-    const matchQuery = !q || s.name.toLowerCase().includes(q) || (s.dept && s.dept.toLowerCase().includes(q));
-    const matchDept = dept === 'all' || s.dept === dept;
-    const matchYear = year === 'all' || String(s.year) === year;
-    return matchQuery && matchDept && matchYear;
-  }).sort((a,b) => b.score - a.score);
-
+  if (mode === 'team') {
+    visible = entries.filter(t =>
+      !q || t.name.toLowerCase().includes(q) || t.members.some(m => m.name.toLowerCase().includes(q)));
+  } else {
+    const dept = $('#departmentFilter').value;
+    const year = $('#yearFilter').value;
+    visible = entries.filter(s => {
+      const matchQuery = !q || s.name.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
+      const matchDept = dept === 'all' || s.dept === dept;
+      const matchYear = year === 'all' || String(s.year ?? '').trim() === year;
+      return matchQuery && matchDept && matchYear;
+    });
+  }
   renderPodium();
   renderRows();
 }
 
-async function openModal(id) {
-  const s = students.find(x => x.id === id);
+function setModalHeader(info) {
+  $('#modalAvatar').className = `avatar ${info.color || 'a1'}`;
+  $('#modalAvatar').textContent = getInitials(info.name);
+  $('#modalStudentName').textContent = orDash(info.name);
+  const parts = [];
+  if (info.team) parts.push(`Team ${info.team}`);
+  parts.push(deptLabel(info.dept), yearLabel(info.year));
+  $('#modalSubtitle').textContent = parts.join(' · ');
+  $('#modalRank').textContent = info.rank === null || info.rank === undefined ? DASH : `#${info.rank}`;
+  $('#modalScore').textContent = info.score === null || info.score === undefined ? DASH : fmt(info.score);
+  $('#modalBadgeCount').textContent = info.counted === null || info.counted === undefined ? DASH : info.counted;
+}
+
+function renderBadges(badges) {
+  const grid = $('#modalBadges');
+  if (!badges.length) {
+    $('#modalBadgeLabel').textContent = 'No badges earned yet';
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px 16px;color:#7a8594;background:#f9fafc;border-radius:16px;border:1px dashed #e1e6ee">
+      <strong style="display:block;font-size:14px;color:#2c3440;margin-bottom:6px">No Badges Completed Yet</strong>
+      Badges will appear here as soon as they are earned and verified during the next daily sync.
+    </div>`;
+    return;
+  }
+  $('#modalBadgeLabel').textContent = `${badges.length} verified badge ${badges.length === 1 ? 'record' : 'records'}`;
+  grid.innerHTML = badges.map(b => {
+    const title = escapeHtml(orDash(b.title));
+    const cat = escapeHtml(String(b.category || 'other').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+    const date = escapeHtml(b.earned_date || 'Verified');
+    const img = safeImageUrl(b.image_url);
+    const media = img ? `<img loading="lazy" src="${escapeHtml(img)}" alt="${title} badge">` : BADGE_PLACEHOLDER;
+    return `<a class="badge-card" href="${escapeHtml(safeBadgeUrl(b.badge_url))}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit">
+      <span class="badge-image-wrap">${media}</span>
+      <span class="badge-info">
+        <span class="badge-title">${title}</span>
+        <span class="badge-type">${cat}</span>
+        <span class="badge-date">Earned ${date}</span>
+      </span>
+    </a>`;
+  }).join('');
+  grid.querySelectorAll('img').forEach(img => {
+    img.addEventListener('error', () => { img.parentElement.innerHTML = BADGE_PLACEHOLDER; }, { once: true });
+  });
+}
+
+function openStudent(id) {
+  const s = entries.find(x => x.id === id);
   if (!s) return;
+  openModal(id, { name: s.name, dept: s.dept, year: s.year, rank: s.rank, score: s.score, counted: s.counted, color: s.color });
+}
+
+function openTeamMember(teamId, memberId) {
+  const team = entries.find(t => t.id === teamId);
+  const m = team && team.members.find(x => x.id === memberId);
+  if (!m) return;
+  openModal(memberId, { name: m.name, team: team.name, rank: null, score: m.score, counted: null, color: team.color });
+}
+
+async function openModal(id, info) {
+  const token = ++modalToken;
   lastFocused = document.activeElement;
-
-  $('#modalAvatar').className = `avatar ${s.color}`;
-  $('#modalAvatar').textContent = s.avatar;
-  $('#modalStudentName').textContent = s.name;
-  const fullDept = deptNames[s.dept] || s.dept || 'Engineering';
-  const yr = s.year || 1;
-  const yrSuffix = yr === 1 ? 'st' : yr === 2 ? 'nd' : yr === 3 ? 'rd' : 'th';
-  $('#modalSubtitle').textContent = `${fullDept} (${s.dept || 'ENG'}) · ${yr}${yrSuffix} year`;
-  $('#modalRank').textContent = `#${rankFor(s) || '—'}`;
-  $('#modalScore').textContent = fmt(s.score);
-  $('#modalBadgeCount').textContent = badgeCount(s);
+  setModalHeader(info);
   $('#modalBadgeLabel').textContent = 'Loading verified badges…';
-
   $('#modalBadges').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:#8792a0;font-size:12px">Fetching badge verification from Google Skills…</div>';
   $('#studentModal').classList.add('open');
   document.body.style.overflow = 'hidden';
   $('#closeModal').focus();
+  showToast(`Viewing ${orDash(info.name)}'s profile`);
 
   try {
-    let memberData = memberBadgesCache[id];
-    if (!memberData) {
-      const res = await fetch(`/api/members/${id}`);
-      if (res.ok) {
-        memberData = await res.json();
-        memberBadgesCache[id] = memberData;
-      }
+    let data = memberCache[id];
+    if (!data) {
+      const res = await fetch(`/api/members/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error('API returned ' + res.status);
+      data = await res.json();
+      memberCache[id] = data;
     }
-
-    if (memberData && memberData.counted_badges && memberData.counted_badges.length > 0) {
-      const badges = memberData.counted_badges;
-      $('#modalBadgeCount').textContent = badges.length;
-      $('#modalBadgeLabel').textContent = `${badges.length} verified badge ${badges.length === 1 ? 'record' : 'records'}`;
-      $('#modalBadges').innerHTML = badges.map(b => {
-        const cat = (b.category || 'skill_badge').replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-        const dateStr = b.earned_date || 'Verified';
-        const img = b.image_url || 'https://images.credly.com/images/826e89a5-1a1d-4e6c-b740-531957965a78/twitter_thumb_201604_image.png';
-        const url = b.badge_url || 'https://www.skills.google';
-        return `<a class="badge-card" href="${url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit">
-          <span class="badge-image-wrap">
-            <img loading="lazy" src="${img}" alt="${b.title} badge" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=&quot;font-size:10px;color:#8792a0;text-align:center;padding:6px;line-height:1.3&quot;>Google Cloud<br>Badge</span>'">
-          </span>
-          <span class="badge-info">
-            <span class="badge-title">${b.title}</span>
-            <span class="badge-type">${cat}</span>
-            <span class="badge-date">Earned ${dateStr}</span>
-          </span>
-        </a>`;
-      }).join('');
-    } else {
-      $('#modalBadgeCount').textContent = '0';
-      $('#modalBadgeLabel').textContent = 'No badges earned yet';
-      $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px 16px;color:#7a8594;background:#f9fafc;border-radius:16px;border:1px dashed #e1e6ee">
-        <strong style="display:block;font-size:14px;color:#2c3440;margin-bottom:6px">No Badges Completed Yet</strong>
-        Badges will appear here as soon as they are earned and verified during the next daily sync.
-      </div>`;
-    }
+    if (token !== modalToken) return;
+    const counted = Array.isArray(data.counted_badges) ? data.counted_badges : [];
+    setModalHeader({
+      name: data.name ?? info.name,
+      team: data.team ? data.team.name : info.team,
+      dept: data.department,
+      year: data.year,
+      rank: mode === 'team' ? null : (info.rank ?? data.published_rank),
+      score: info.score ?? data.published_score,
+      counted: counted.length,
+      color: info.color
+    });
+    renderBadges(counted);
   } catch (err) {
-    if (s.badges.skill === 0 && s.badges.completion === 0 && s.badges.genai === 0) {
-      $('#modalBadgeLabel').textContent = 'No badges earned yet';
-      $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px 16px;color:#7a8594;background:#f9fafc;border-radius:16px;border:1px dashed #e1e6ee">
-        <strong style="display:block;font-size:14px;color:#2c3440;margin-bottom:6px">No Badges Completed Yet</strong>
-        Badges will appear here as soon as they are earned and verified during the next daily sync.
-      </div>`;
-    } else {
-      $('#modalBadgeLabel').textContent = 'Badges earned (offline summary)';
-      $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:#6d7785">
-        ${s.name} has earned ${badgeCount(s)} Google Cloud badges. Connect to the live server to view full badge certificates.
-      </div>`;
-    }
+    if (token !== modalToken) return;
+    console.warn('Could not load member detail:', err);
+    $('#modalBadgeLabel').textContent = "Couldn't load badges";
+    const msg = document.createElement('div');
+    msg.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px;color:#6d7785';
+    msg.textContent = "Couldn't load badges, try again later.";
+    $('#modalBadges').replaceChildren(msg);
   }
-
-  showToast(`Viewing ${s.name}'s profile`);
 }
 
 function closeModal() {
+  modalToken++;
   $('#studentModal').classList.remove('open');
   document.body.style.overflow = '';
   if (lastFocused && typeof lastFocused.focus === 'function') {
@@ -533,87 +680,60 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-async function loadLiveLeaderboard() {
+async function loadStatus() {
+  try {
+    const res = await fetch('/api/leaderboard/status');
+    if (!res.ok) return;
+    const st = await res.json();
+    if (st.active_members) {
+      $('#totalParticipants').textContent = fmt(st.active_members);
+    }
+  } catch (_) {
+    // Keep the count derived from the published entries.
+  }
+}
+
+async function loadLeaderboard() {
+  let data;
   try {
     const res = await fetch('/api/leaderboard?limit=500');
     if (!res.ok) throw new Error('API returned ' + res.status);
-    const data = await res.json();
-    if (!data || !data.entries || !data.entries.length) return;
-
-    let totalBadges = 0;
-    let totalScore = 0;
-
-    const mapped = data.entries.map((e, idx) => {
-      const b = e.breakdown || {};
-      const catCounts = b.counts_by_category || {};
-      const sBadges = catCounts.skill_badge || 0;
-      const cBadges = catCounts.course_badge || 0;
-      const gBadges = catCounts.game_badge || 0;
-      const score = Math.round(e.score || 0);
-
-      totalBadges += (e.counted_badges || 0);
-      totalScore += score;
-
-      return {
-        id: e.id,
-        name: e.name,
-        dept: e.department || '',
-        year: parseInt(e.year) || 2,
-        score: score,
-        badges: {
-          skill: sBadges,
-          completion: cBadges,
-          genai: gBadges
-        },
-        avatar: getInitials(e.name),
-        color: colors[idx % colors.length]
-      };
-    });
-
-    students = mapped;
-    currentStudents = [...students].sort((a,b) => b.score - a.score);
-
-    // Update departments
-    const allDepts = students.map(s => s.dept).filter(Boolean);
-    populateDepartments(allDepts);
-
-    // Update Stats
-    $('#totalBadges').textContent = fmt(totalBadges);
-    $('#totalPoints').textContent = fmt(totalScore);
-
-    // Try fetching status for active_members and published_at
-    try {
-      const stRes = await fetch('/api/leaderboard/status');
-      if (stRes.ok) {
-        const stData = await stRes.json();
-        if (stData.active_members) {
-          $('#totalParticipants').textContent = fmt(stData.active_members);
-        }
-      }
-    } catch (_) {
-      $('#totalParticipants').textContent = fmt(students.length);
-    }
-
-    if (data.published_at) {
-      const pubDate = new Date(data.published_at);
-      $('#syncTime').textContent = pubDate.toLocaleTimeString('en-IN', {
-        hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
-      });
-      $('#syncDate').textContent = pubDate.toLocaleDateString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
-      }) + ' · IST';
-    }
-
-    $('#syncStatus').textContent = 'Live synced';
-    $('#pulseDot').className = 'pulse';
-
-    renderPodium();
-    renderRows();
+    data = await res.json();
   } catch (err) {
-    console.warn('Backend not responding to /api/leaderboard, using embedded campaign snapshot:', err);
-    $('#syncStatus').textContent = 'Verified snapshot';
-    $('#pulseDot').className = 'pulse yellow';
+    console.warn('Could not load /api/leaderboard:', err);
+    showMessage("Couldn't load leaderboard, try again later", 'The leaderboard service did not respond.', 'Offline');
+    return;
   }
+
+  const raw = data && Array.isArray(data.entries) ? data.entries : [];
+  if (!raw.length) {
+    showMessage('Leaderboard not published yet', 'Rankings will appear here after the first published sync.', 'Not published');
+    return;
+  }
+
+  setMode(data.mode === 'team' ? 'team' : 'solo');
+  entries = raw.map(mode === 'team' ? toTeam : toStudent);
+  if (mode === 'solo') populateDepartments(entries.map(s => s.dept));
+
+  $('#totalParticipants').textContent = fmt(
+    mode === 'team' ? entries.reduce((n, t) => n + t.members.length, 0) : entries.length);
+  $('#totalBadges').textContent = fmt(entries.reduce((n, e) => n + e.counted, 0));
+  $('#totalPoints').textContent = fmt(entries.reduce((n, e) => n + e.score, 0));
+
+  if (data.published_at) {
+    const pubDate = new Date(data.published_at);
+    $('#syncTime').textContent = pubDate.toLocaleTimeString('en-IN', {
+      hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
+    });
+    $('#syncDate').textContent = pubDate.toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
+    }) + ' · IST';
+  }
+
+  setSyncState('Live synced', true);
+  setControlsEnabled(true);
+  updateFilters();
+  loadStatus();
 }
 
 // Event Listeners
@@ -635,11 +755,8 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Initial boot
-populateDepartments(initialSnapshot.map(s => s.dept));
-renderPodium();
-renderRows();
-loadLiveLeaderboard();
+// Initial boot: loading state only, no data until the API answers.
+loadLeaderboard();
 </script>
 </body>
 </html>
