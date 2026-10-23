@@ -54,6 +54,24 @@ python -m app.cli import data/sample_form.xlsx
 python scripts/mock_refresh.py      # refresh against a mocked site, then prints /api/leaderboard
 ```
 
+### Helper scripts for a running server
+
+Both talk to the HTTP API only and need `pip install -r requirements-dev.txt`. Nothing is hardcoded: pass options or set the environment variables.
+
+```bash
+# import the form if the DB is empty, trigger a refresh, wait for it, print the board
+python scripts/run_pipeline.py --base-url http://localhost:8000 --admin-token "$ADMIN_TOKEN" --xlsx path/to/form.xlsx
+
+# just watch the current run
+python scripts/monitor_run.py --base-url http://localhost:8000
+```
+
+| Option | Env var | Used by |
+|---|---|---|
+| `--base-url` | `BASE_URL` (default `http://localhost:8000`) | both |
+| `--admin-token` | `ADMIN_TOKEN` (required) | `run_pipeline.py` |
+| `--xlsx` | `FORM_XLSX` (only needed when the DB is empty) | `run_pipeline.py` |
+
 ## What the importer does
 
 - Finds the sheet named **Form responses 1** (falls back to the first sheet). It matches headers case-insensitively by keyword, so trailing spaces and newlines don't matter.
@@ -170,7 +188,7 @@ Interactive docs are at `/docs`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db` |
+| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db`. Postgres: `postgresql://…` (`postgres://` is rewritten automatically) |
 | `LEADERBOARD_MODE` | `auto` | `auto`, `team` or `solo` |
 | `LEADERBOARD_SIZE` | `50` | Standings stored per run |
 | `MIN_SUCCESS_RATIO` | `0.6` | Minimum successful/attempted fetches to publish |
@@ -274,7 +292,8 @@ app/
   pipeline.py        lock → collect → score → validate → publish
   scheduler.py       APScheduler daily job
   api.py, cli.py     FastAPI app and CLI
-scripts/             synthetic sample data + offline mock refresh
+scripts/             synthetic sample data, offline mock refresh, run_pipeline/monitor_run helpers
+frontend/            static leaderboard page served at /
 tests/               pytest suite (network mocked)
 ```
 
