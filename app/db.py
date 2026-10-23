@@ -27,10 +27,17 @@ _engine: Engine | None = None
 _SessionLocal: sessionmaker[Session] | None = None
 
 
+def normalize_database_url(database_url: str) -> str:
+    """Heroku/Render-style ``postgres://`` URLs are rejected by SQLAlchemy 2; use ``postgresql://``."""
+    if database_url.startswith("postgres://"):
+        return "postgresql://" + database_url[len("postgres://"):]
+    return database_url
+
+
 def configure(database_url: str | None = None) -> Engine:
     """(Re)create the engine. Called lazily, and by tests to point at a temp database."""
     global _engine, _SessionLocal
-    url = make_url(database_url or get_settings().database_url)
+    url = make_url(normalize_database_url(database_url or get_settings().database_url))
     kwargs: dict = {"pool_pre_ping": True, "future": True}
     if url.get_backend_name() == "sqlite":
         kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
