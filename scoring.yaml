@@ -1,7 +1,7 @@
 # Scoring rules. Edit and the next run picks them up; no code change needed.
 # Every run stores a SHA-256 hash and a full snapshot of this file's effective values.
 
-program_start: null        # "YYYY-MM-DD": badges earned before this date don't count
+program_start: 2026-11-01        # "YYYY-MM-DD": badges earned before this date don't count
 program_end: null          # optional end date, inclusive
 points:
   skill_badge: 10
