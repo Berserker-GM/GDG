@@ -28,9 +28,14 @@ _SessionLocal: sessionmaker[Session] | None = None
 
 
 def normalize_database_url(database_url: str) -> str:
-    """Heroku/Render-style ``postgres://`` URLs are rejected by SQLAlchemy 2; use ``postgresql://``."""
-    if database_url.startswith("postgres://"):
-        return "postgresql://" + database_url[len("postgres://"):]
+    """Pin plain Postgres URLs to psycopg2, the driver in requirements.txt.
+
+    Heroku/Render-style ``postgres://`` is rejected by SQLAlchemy 2, and since SQLAlchemy 2.1 a bare
+    ``postgresql://`` defaults to psycopg 3, which is not installed. An explicit driver is kept.
+    """
+    for prefix in ("postgres://", "postgresql://"):
+        if database_url.startswith(prefix):
+            return "postgresql+psycopg2://" + database_url[len(prefix):]
     return database_url
 
 

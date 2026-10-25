@@ -7,8 +7,9 @@ from app import db
 @pytest.mark.parametrize(
     "raw, expected",
     [
-        ("postgres://u:p@host:5432/app", "postgresql://u:p@host:5432/app"),
-        ("postgresql://u:p@host:5432/app", "postgresql://u:p@host:5432/app"),
+        ("postgres://u:p@host:5432/app", "postgresql+psycopg2://u:p@host:5432/app"),
+        ("postgresql://u:p@host:5432/app", "postgresql+psycopg2://u:p@host:5432/app"),
+        ("postgresql+psycopg://u:p@host/app", "postgresql+psycopg://u:p@host/app"),
         ("postgresql+psycopg2://u:p@host/app", "postgresql+psycopg2://u:p@host/app"),
         ("sqlite:///data/leaderboard.db", "sqlite:///data/leaderboard.db"),
         ("mysql+pymysql://u:p@host/postgres://x", "mysql+pymysql://u:p@host/postgres://x"),
@@ -30,10 +31,22 @@ def test_configure_accepts_postgres_scheme(monkeypatch):
     monkeypatch.setattr(db, "_SessionLocal", None)
     db.configure("postgres://user:pw@db.example:5432/leaderboard")
     url = make_url(captured[0])
-    assert url.drivername == "postgresql"
+    assert url.drivername == "postgresql+psycopg2"
     assert (url.host, url.port, url.database) == ("db.example", 5432, "leaderboard")
 
 
 class _FakeEngine:
     def dispose(self) -> None:
         pass
+
+
+def test_plain_postgresql_url_loads_installed_driver(monkeypatch):
+    # SQLAlchemy 2.1 maps bare postgresql:// to psycopg 3, which is not installed (Render crash).
+    monkeypatch.setattr(db, "_engine", None)
+    monkeypatch.setattr(db, "_SessionLocal", None)
+    engine = db.configure("postgresql://user:pw@db.example:5432/leaderboard?sslmode=require")
+    try:
+        assert engine.dialect.driver == "psycopg2"
+    finally:
+        engine.dispose()
+        monkeypatch.setattr(db, "_engine", None)
