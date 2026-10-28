@@ -50,14 +50,14 @@ button{cursor:pointer}
 h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);line-height:.88;letter-spacing:-.025em;margin:0;color:#fff;
   -webkit-text-stroke:8px var(--k);paint-order:stroke fill;filter:drop-shadow(7px 7px 0 var(--k))}
 .lede{font-size:19px;font-weight:500;max-width:42ch;margin:30px 0 0;color:#0b0b0f}
-.camp{display:flex;flex-wrap:wrap;gap:16px;margin-top:28px}
-.days{padding:12px 20px;min-width:150px}
-.days b{font-family:var(--display);font-weight:800;font-size:52px;line-height:1;letter-spacing:-.04em;display:block}
-.days span{font-size:14px;font-weight:700}
-.goal{padding:14px 18px;flex:1 1 240px;max-width:360px}
-.goal-top{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;margin-bottom:10px}
-.pbar{height:22px;border:var(--bd);border-radius:14px;background:#fff;overflow:hidden}
-.pfill{height:100%;width:0;background:var(--y);border-right:var(--bd);border-radius:0 12px 12px 0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+.camp{display:grid;grid-template-columns:135px minmax(0,1fr);gap:16px;margin-top:28px;max-width:540px;align-items:stretch}
+.days{padding:14px 16px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center}
+.days b{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;letter-spacing:-.04em;display:block}
+.days span{font-size:13px;font-weight:700;margin-top:4px}
+.goal{padding:16px 20px;display:flex;flex-direction:column;justify-content:center}
+.goal-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;font-weight:700;margin-bottom:10px}
+.pbar{height:20px;border:var(--bd);border-radius:12px;background:#fff;overflow:hidden}
+.pfill{height:100%;width:0;background:var(--y);border-right:var(--bd);border-radius:0 10px 10px 0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
 
 /* finder */
 .finder{position:relative;padding:26px 22px 22px;background:#fff;border:3px solid var(--k);border-radius:24px;box-shadow:8px 8px 0 var(--k)}
@@ -240,6 +240,7 @@ footer img{width:44px}
   .m-head{padding:20px 18px;padding-right:64px}.m-head .avatar{width:64px;height:64px;font-size:22px}
   .bgrid{grid-template-columns:1fr}.m-body{padding:20px 18px 4px}.m-foot{padding:16px 18px 22px}.m-stats div{padding:12px 14px}
   .sec{margin-top:52px}.stats{gap:12px}
+  .camp{grid-template-columns:1fr;max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -382,8 +383,8 @@ const DASH = '—';
 const FALLBACK_BADGE_URL = 'https://www.skills.google';
 const CONFIG = {
   college: 'BMS Institute of Technology & Management',
-  goalParticipants: 350,
-  endDate: '2026-11-20'
+  goalParticipants: null,
+  endDate: null
 };
 
 const KNOWN_DEPTS = {
@@ -497,9 +498,9 @@ function countUp(el, to, short) {
   })(t0);
 }
 
-function renderHero(publishedAt) {
+function renderHero(publishedAt, totalParticipants) {
   $('#collegeName').textContent = CONFIG.college;
-  const nP = currentMode === 'team' ? allTeams.reduce((n, t) => n + t.members.length, 0) : allStudents.length;
+  const nP = totalParticipants || (currentMode === 'team' ? allTeams.reduce((n, t) => n + t.members.length, 0) : allStudents.length);
   const nB = (currentMode === 'team' ? allTeams : allStudents).reduce((a, item) => a + (item.counted_badges || 0), 0);
   const nPt = (currentMode === 'team' ? allTeams : allStudents).reduce((a, item) => a + (item.score || 0), 0);
 
@@ -509,7 +510,7 @@ function renderHero(publishedAt) {
     box.push(`<div class="box days"><b>${Math.max(left, 0)}</b><span>${left > 1 ? 'days left' : left === 1 ? 'day left' : 'campaign ended'}</span></div>`);
   }
   if (CONFIG.goalParticipants) {
-    box.push(`<div class="box goal"><div class="goal-top"><span>Campus goal</span><span>${fmt(nP)} of ${fmt(CONFIG.goalParticipants)} learners</span></div><div class="pbar"><div class="pfill" id="goalFill"></div></div></div>`);
+    box.push(`<div class="box goal"><div class="goal-top"><span>Campus goal</span></div><div class="pbar"><div class="pfill" id="goalFill"></div></div></div>`);
   }
   $('#camp').innerHTML = box.join('');
   const gf = $('#goalFill');
@@ -847,10 +848,21 @@ document.addEventListener('keydown', e => {
 
 async function loadLeaderboard() {
   let data;
+  let totalParticipants = 0;
   try {
-    const resLb = await fetch('/api/leaderboard?limit=50');
+    const [resLb, resStatus] = await Promise.all([
+      fetch('/api/leaderboard?limit=50'),
+      fetch('/api/leaderboard/status')
+    ]);
     if (!resLb.ok) throw new Error('API request failed');
     data = await resLb.json();
+    if (resStatus.ok) {
+      const st = await resStatus.json();
+      totalParticipants = st.active_members || 0;
+    }
+    if (!totalParticipants && data.total_participants) {
+      totalParticipants = data.total_participants;
+    }
   } catch (err) {
     console.error('Error fetching leaderboard data:', err);
     $('#syncText').textContent = "Couldn't load leaderboard, try again later";
@@ -874,7 +886,7 @@ async function loadLeaderboard() {
       members: e.members || []
     }));
     maxScore = allTeams.length ? Math.max(...allTeams.map(t => t.score), 1) : 1;
-    renderHero(data.published_at);
+    renderHero(data.published_at, totalParticipants);
     renderPodium();
     renderTeamRows();
   } else {
@@ -914,7 +926,7 @@ async function loadLeaderboard() {
       } catch (e) {}
     }));
 
-    renderHero(data.published_at);
+    renderHero(data.published_at, totalParticipants);
     renderPodium();
     renderChips();
     renderStudentRows();
