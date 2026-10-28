@@ -510,7 +510,7 @@ function renderHero(publishedAt, totalParticipants) {
     box.push(`<div class="box days"><b>${Math.max(left, 0)}</b><span>${left > 1 ? 'days left' : left === 1 ? 'day left' : 'campaign ended'}</span></div>`);
   }
   if (CONFIG.goalParticipants) {
-    box.push(`<div class="box goal"><div class="goal-top"><span>Campus goal</span><span>${fmt(nP)} of ${fmt(CONFIG.goalParticipants)} learners</span></div><div class="pbar"><div class="pfill" id="goalFill"></div></div></div>`);
+    box.push(`<div class="box goal"><div class="goal-top"><span>Campus goal</span></div><div class="pbar"><div class="pfill" id="goalFill"></div></div></div>`);
   }
   $('#camp').innerHTML = box.join('');
   const gf = $('#goalFill');
