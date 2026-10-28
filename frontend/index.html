@@ -3,275 +3,419 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#101318" />
-<title>GDG Cloud Campaign 2026 — Leaderboard</title>
+<meta name="theme-color" content="#4285f4" />
+<title>GDG Cloud Campaign 2026 Leaderboard — BMSIT&amp;M</title>
 <link rel="icon" type="image/png" href="/static/gdg-logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#f5f7fb; --ink:#151a23; --muted:#687181; --line:#e6e9ef; --panel:#fff;
-    --blue:#4285f4; --red:#ea4335; --yellow:#fbbc04; --green:#34a853;
-    --navy:#101318; --navy2:#171c24; --shadow:0 12px 34px rgba(23,34,52,.07);
-    --radius:22px;
-  }
-  *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
-  body{margin:0;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);}
-  button,input,select{font:inherit}
-  button{cursor:pointer}
-  .shell{max-width:1440px;margin:0 auto;padding:26px clamp(16px,3vw,42px) 50px}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:22px;margin-bottom:24px}
-  .brand{display:flex;align-items:center;gap:13px;min-width:0}
-  .gdg-mark{width:46px;height:46px;flex:0 0 auto;display:grid;place-items:center;background:#fff;border:1px solid #e5e9f0;border-radius:15px;box-shadow:0 4px 12px rgba(20,35,60,.05);overflow:hidden;}
-  .gdg-mark img{width:36px;height:36px;object-fit:contain;display:block}
-  .brand-copy{min-width:0}
-  .brand-title{font-weight:800;letter-spacing:-.035em;font-size:16px;line-height:1.2}
-  .brand-sub{font-size:12px;color:var(--muted);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .top-actions{display:flex;align-items:center;gap:10px}
-  .sync-pill,.campaign-pill{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fff;padding:10px 13px;border-radius:999px;font-size:12px;color:#505a6b;white-space:nowrap}
-  .pulse{height:7px;width:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(52,168,83,.13)}
-  .pulse.yellow{background:var(--yellow);box-shadow:0 0 0 4px rgba(251,188,4,.18)}
-  .hero{position:relative;isolation:isolate;overflow:hidden;background:var(--navy);color:#fff;padding:clamp(25px,4vw,46px);border-radius:30px;box-shadow:0 22px 55px rgba(17,23,32,.13);}
-  .hero:before{content:"";position:absolute;z-index:-1;width:440px;height:440px;right:-80px;top:-260px;border-radius:50%;background:radial-gradient(circle,rgba(66,133,244,.33),rgba(66,133,244,0) 68%)}
-  .hero:after{content:"";position:absolute;z-index:-1;width:370px;height:370px;right:16%;bottom:-320px;border-radius:50%;background:radial-gradient(circle,rgba(52,168,83,.22),rgba(52,168,83,0) 67%)}
-  .hero-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.85fr);gap:35px;align-items:center}
-  .eyebrow{display:inline-flex;align-items:center;gap:8px;color:#b6c5df;text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:800;margin-bottom:17px}
-  .eyebrow:before{content:"";width:23px;height:2px;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:3px}
-  h1{font-size:clamp(33px,4.4vw,57px);line-height:1.04;letter-spacing:-.055em;margin:0;max-width:720px;font-weight:800}
-  h1 .accent{background:linear-gradient(90deg,#8ab4f8,#a7d7b7);background-clip:text;-webkit-background-clip:text;color:transparent}
-  .hero-description{color:#aab3c2;font-size:14px;line-height:1.7;max-width:560px;margin:18px 0 0}
-  .hero-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:23px}
-  .college-chip{border-radius:999px;border:1px solid #333b49;background:rgba(255,255,255,.04);padding:9px 12px;color:#d2d8e3;font-size:12px;display:inline-flex;align-items:center;gap:8px}
-  .college-chip svg{width:14px;height:14px;color:#9fbfff}
-  .stats-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .stat{min-height:126px;padding:20px;border:1px solid rgba(255,255,255,.11);border-radius:20px;background:rgba(255,255,255,.045);backdrop-filter:blur(8px);position:relative;overflow:hidden}
-  .stat:after{content:"";position:absolute;width:95px;height:95px;border-radius:50%;right:-48px;bottom:-52px;background:var(--orb,rgba(66,133,244,.14))}
-  .stat:nth-child(2){--orb:rgba(251,188,4,.15)}.stat:nth-child(3){--orb:rgba(52,168,83,.14)}.stat:nth-child(4){--orb:rgba(234,67,53,.13)}
-  .stat-label{font-size:11px;color:#aab3c2;font-weight:600;display:flex;align-items:center;gap:7px}
-  .stat-label svg{width:15px;height:15px;opacity:.9}
-  .stat-value{font-size:33px;letter-spacing:-.05em;font-weight:800;margin-top:14px;line-height:1}
-  .stat-foot{margin-top:8px;font-size:10px;color:#818b9c}
-  .sync-line{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;color:#808a99;font-size:11px}
-  .sync-line strong{font-weight:600;color:#bdc5d1}
-  .section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:38px 0 18px}
-  .section-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:#7a8493;font-weight:800;margin-bottom:8px}
-  h2{font-size:24px;letter-spacing:-.045em;margin:0;font-weight:800}
-  .section-sub{font-size:12px;color:var(--muted);margin-top:7px}
-  .heading-note{font-size:11px;color:#7a8493;display:flex;align-items:center;gap:7px;white-space:nowrap}
-  .heading-note svg{width:14px;height:14px}
-  .podium{display:grid;grid-template-columns:1fr 1.08fr 1fr;gap:15px;align-items:end}
-  .podium-card{position:relative;min-height:224px;display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 17px 20px;border:1px solid var(--line);border-radius:23px;background:#fff;box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease;overflow:hidden}
-  .podium-card:hover{transform:translateY(-4px);box-shadow:0 19px 42px rgba(23,34,52,.1)}
-  .podium-card.first{min-height:252px;padding-top:28px;border-color:#f1dfaa;background:linear-gradient(180deg,#fffdf6,#fff 80%)}
-  .podium-card.second{background:linear-gradient(180deg,#fbfcff,#fff 83%)}
-  .podium-card.third{background:linear-gradient(180deg,#fffaf7,#fff 83%)}
-  .podium-rank{position:absolute;top:15px;left:17px;font-size:11px;font-weight:800;letter-spacing:.07em;color:#8992a0}
-  .medal{position:absolute;top:14px;right:16px;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;font-size:13px;font-weight:900}
-  .first .medal{background:#fff0bc;color:#a97b00}.second .medal{background:#e9edf4;color:#637185}.third .medal{background:#f8e3d8;color:#a55a32}
-  .avatar{width:65px;height:65px;border-radius:23px;display:grid;place-items:center;color:#fff;font-size:19px;font-weight:800;letter-spacing:-.04em;box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);flex:0 0 auto}
-  .first .avatar{width:72px;height:72px;border-radius:25px}
-  .avatar.a1{background:linear-gradient(135deg,#4385f5,#7aa9ff)}.avatar.a2{background:linear-gradient(135deg,#00a878,#70c79e)}.avatar.a3{background:linear-gradient(135deg,#e96b54,#f6a079)}.avatar.a4{background:linear-gradient(135deg,#8b72db,#b7a9fa)}.avatar.a5{background:linear-gradient(135deg,#d9a300,#f7d45a)}.avatar.a6{background:linear-gradient(135deg,#187caa,#69c4e8)}.avatar.a7{background:linear-gradient(135deg,#a64dc2,#db8ee8)}.avatar.a8{background:linear-gradient(135deg,#53657a,#92a3b4)}.avatar.a9{background:linear-gradient(135deg,#cc405f,#fb8e9a)}.avatar.a10{background:linear-gradient(135deg,#4c956c,#9bd7ab)}
-  .podium-name{font-size:16px;font-weight:800;letter-spacing:-.03em;margin-top:12px}
-  .podium-detail{font-size:11px;color:var(--muted);margin-top:5px}
-  .podium-points{display:flex;align-items:baseline;gap:5px;margin-top:12px}
-  .podium-points strong{font-size:28px;letter-spacing:-.05em}.podium-points span{font-size:10px;color:#7b8492}
-  .podium-badges{margin-top:9px;font-size:11px;color:#667181;display:flex;align-items:center;gap:6px}
-  .mini-cloud{width:14px;height:14px;color:#4285f4}
-  .controls{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:15px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 6px 20px rgba(23,34,52,.035)}
-  .search-box{flex:1 1 280px;position:relative;min-width:210px}
-  .search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:17px;height:17px;color:#8a93a1;pointer-events:none}
-  .search-box input{width:100%;height:46px;border:1px solid #e6e9ef;background:#f8f9fc;border-radius:13px;padding:0 42px 0 42px;outline:none;color:var(--ink);transition:border .2s,box-shadow .2s}
-  .search-box input:focus,select:focus{border-color:#9bbdfb;box-shadow:0 0 0 3px rgba(66,133,244,.1)}
-  .search-box input::placeholder{color:#9aa2af}
-  .search-shortcut{position:absolute;right:11px;top:50%;transform:translateY(-50%);font-size:10px;color:#9ba3af;border:1px solid #e0e4ec;border-radius:5px;padding:3px 5px;background:#fff}
-  .filter-select{height:46px;border:1px solid #e6e9ef;background:#f8f9fc;border-radius:13px;padding:0 36px 0 13px;color:#475365;outline:none;min-width:155px;font-size:12px}
-  .result-count{margin-left:auto;color:#778191;font-size:11px;white-space:nowrap;padding:0 5px}
-  .result-count strong{color:#252c37}
-  .table-panel{margin-top:13px;border:1px solid var(--line);background:#fff;border-radius:21px;box-shadow:var(--shadow);overflow:hidden}
-  .table-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 21px;border-bottom:1px solid #edf0f4}
-  .table-title{font-size:14px;font-weight:800;letter-spacing:-.02em}
-  .table-caption{font-size:11px;color:#8992a0;margin-top:4px}
-  .sort-label{display:flex;align-items:center;gap:7px;color:#8992a0;font-size:11px}
-  .sort-label svg{width:14px;height:14px}
-  .table-scroll{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;min-width:850px}
-  thead th{text-align:left;font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8a93a1;padding:14px 18px;background:#fbfcfe;white-space:nowrap}
-  tbody tr{border-top:1px solid #eff1f5;transition:background .16s;cursor:pointer}
-  tbody tr:hover{background:#f8fbff}
-  tbody td{padding:15px 18px;font-size:12px;vertical-align:middle}
-  .rank-cell{font-weight:800;color:#657083;width:65px}
-  .rank-number{display:inline-grid;place-items:center;width:29px;height:29px;border-radius:10px;background:#f2f4f8}
-  .student-cell{display:flex;align-items:center;gap:12px;min-width:200px}
-  .student-cell .avatar{width:42px;height:42px;border-radius:14px;font-size:12px;box-shadow:none}
-  .student-name{font-size:12px;font-weight:800;color:#202631}
-  .student-tag{font-size:10px;color:#8992a0;margin-top:4px;letter-spacing:.03em}
-  .dept-main{font-weight:700;color:#394252;font-size:11px}
-  .year-tag{display:inline-flex;margin-top:5px;padding:4px 7px;border-radius:6px;background:#f2f5fa;color:#7b8594;font-size:9px;font-weight:700}
-  .badge-chips{display:flex;gap:5px;align-items:center;flex-wrap:wrap;max-width:260px}
-  .badge-chip{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:6px 7px;font-size:9px;font-weight:800;white-space:nowrap}
-  .badge-chip.blue{background:#edf4ff;color:#326fc4}.badge-chip.green{background:#eaf7ef;color:#23834c}.badge-chip.yellow{background:#fff7dc;color:#977000}.badge-chip.red{background:#fff0ef;color:#bb4a3d}.badge-chip.more{background:#f0f2f6;color:#7c8694}
-  .chip-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.65}
-  .score-cell{font-size:17px;font-weight:900;letter-spacing:-.04em;color:#202631;white-space:nowrap}
-  .score-unit{font-size:9px;font-weight:600;color:#8b94a1;letter-spacing:0;margin-left:4px}
-  .row-action{color:#b1b8c2;font-size:18px}
-  tbody tr.team-row{cursor:default}
-  .member-list{display:flex;flex-wrap:wrap;gap:6px;max-width:420px}
-  .member-link{display:inline-flex;align-items:center;gap:6px;border:1px solid #e3e8f0;background:#f8f9fc;border-radius:9px;padding:6px 9px;font-size:11px;font-weight:700;color:#2f3846;transition:border .16s,background .16s}
-  .member-link:hover,.member-link:focus-visible{border-color:#9bbdfb;background:#edf4ff;outline:none}
-  .member-link span{font-weight:600;color:#8992a0;font-size:10px}
-  .badge-fallback{font-size:10px;color:#8792a0;text-align:center;padding:6px;line-height:1.3}
-  .empty-state{padding:44px 20px;text-align:center;color:#778191;font-size:13px}
-  .empty-state strong{display:block;font-size:15px;color:#303946;margin-bottom:6px}
-  .table-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:14px 20px;color:#8a93a1;font-size:10px;border-top:1px solid #edf0f4}
-  .legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.legend-item{display:flex;align-items:center;gap:5px}.legend-square{height:7px;width:7px;border-radius:3px}
-  .footer-note{display:flex;align-items:center;gap:6px}.footer-note svg{width:13px;height:13px}
-  .modal-backdrop{position:fixed;inset:0;background:rgba(12,17,25,.56);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:18px;z-index:100;overflow:auto}
-  .modal-backdrop.open{display:flex;animation:fadeIn .18s ease-out}
-  .modal{width:min(720px,100%);max-height:min(88vh,900px);overflow:auto;background:#fff;border-radius:25px;box-shadow:0 35px 110px rgba(0,0,0,.3);animation:popIn .2s ease-out}
-  .modal-head{background:#121720;color:#fff;padding:24px;position:relative;overflow:hidden}
-  .modal-head:after{content:"";position:absolute;width:250px;height:250px;border-radius:50%;right:-90px;top:-140px;background:radial-gradient(circle,rgba(66,133,244,.35),transparent 68%);pointer-events:none}
-  .modal-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1}
-  .modal-kicker{font-size:10px;letter-spacing:.13em;color:#9eabc0;text-transform:uppercase;font-weight:800}
-  .close-btn{height:34px;width:34px;display:grid;place-items:center;border-radius:11px;border:1px solid #3a424f;background:#252c37;color:#fff;font-size:20px;line-height:1}
-  .modal-profile{display:flex;align-items:center;gap:15px;margin-top:21px;position:relative;z-index:1}
-  .modal-profile .avatar{width:62px;height:62px;border-radius:20px;font-size:18px}
-  .modal-student-name{font-size:24px;letter-spacing:-.04em;font-weight:850}
-  .modal-subtitle{color:#abb4c3;font-size:11px;margin-top:6px}
-  .modal-summary{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px;position:relative;z-index:1}
-  .summary-pill{border:1px solid #343c49;background:rgba(255,255,255,.045);border-radius:10px;padding:9px 11px;font-size:11px;color:#dbe1ea}
-  .summary-pill strong{color:#fff;font-size:13px;margin-right:4px}
-  .modal-body{padding:24px}
-  .modal-section-head{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:14px}
-  .modal-section-head h3{font-size:15px;letter-spacing:-.03em;margin:0}
-  .modal-section-head span{font-size:10px;color:#8b94a1}
-  .badge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-  .badge-card{border:1px solid #e7eaf0;border-radius:16px;padding:11px;display:flex;align-items:center;gap:12px;min-width:0;transition:border .16s,transform .16s}
-  .badge-card:hover{border-color:#c7d8f7;transform:translateY(-2px)}
-  .badge-image-wrap{width:94px;aspect-ratio:1.23;display:grid;place-items:center;background:#f8f9fb;border:1px solid #eef0f3;border-radius:9px;overflow:hidden;flex:0 0 auto}
-  .badge-image-wrap img{width:100%;height:100%;object-fit:contain;display:block}
-  .badge-info{min-width:0}
-  .badge-title{font-size:11px;line-height:1.4;font-weight:800;color:#27303c}
-  .badge-type{font-size:9px;color:#7d8795;margin-top:5px}
-  .badge-date{font-size:9px;color:#8c95a2;margin-top:8px;display:flex;align-items:center;gap:5px}
-  .badge-date:before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green)}
-  .modal-foot{padding:0 24px 23px;color:#8b94a1;font-size:10px;line-height:1.6}
-  .modal-foot a{color:#4285f4;text-decoration:none;font-weight:700}
-  .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,15px);background:#19202a;color:#fff;padding:11px 15px;border-radius:12px;font-size:11px;box-shadow:0 9px 30px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:all .25s;z-index:150}
-  .toast.show{opacity:1;transform:translate(-50%,0)}
-  .bottom-brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 2px 0;color:#929aa7;font-size:10px;flex-wrap:wrap}
-  .google-dots{display:flex;gap:4px;align-items:center}.google-dots i{height:6px;width:6px;border-radius:50%;display:block}.google-dots i:nth-child(1){background:var(--blue)}.google-dots i:nth-child(2){background:var(--red)}.google-dots i:nth-child(3){background:var(--yellow)}.google-dots i:nth-child(4){background:var(--green)}
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes popIn{from{opacity:0;transform:translateY(9px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
-  @media(max-width:900px){.hero-grid{grid-template-columns:1fr;gap:27px}.stats-grid{max-width:620px}.hero{padding:28px}.podium{gap:10px}.podium-card{padding-left:12px;padding-right:12px}.podium-name{font-size:14px}}
-  @media(max-width:640px){.shell{padding:15px 12px 30px}.topbar{align-items:flex-start}.top-actions .campaign-pill{display:none}.sync-pill{font-size:0;padding:11px}.sync-pill .pulse{margin:0}.brand-title{font-size:14px}.brand-sub{max-width:210px}.hero{border-radius:23px;padding:24px 19px}.hero-grid{gap:23px}h1{font-size:37px}.hero-description{font-size:12px}.stat{padding:15px;min-height:110px;border-radius:16px}.stat-value{font-size:28px}.section-heading{margin-top:30px;align-items:flex-start}.section-heading h2{font-size:21px}.heading-note{display:none}.podium{grid-template-columns:1fr;align-items:stretch;gap:9px}.podium-card,.podium-card.first{min-height:auto;display:grid;grid-template-columns:auto 1fr auto;column-gap:13px;align-items:center;text-align:left;padding:15px 16px}.podium-card .avatar,.podium-card.first .avatar{grid-row:1 / span 3;width:49px;height:49px;border-radius:16px;font-size:13px}.podium-rank{position:static;grid-column:2;grid-row:1;font-size:9px}.podium-name{grid-column:2;grid-row:2;margin:2px 0 0;font-size:13px}.podium-detail{grid-column:2;grid-row:3;margin-top:3px}.podium-points{grid-column:3;grid-row:1 / span 2;display:block;text-align:right;margin:0}.podium-points strong{display:block;font-size:24px}.podium-points span{display:block}.podium-badges{grid-column:3;grid-row:3;justify-content:flex-end;margin:3px 0 0;font-size:9px}.medal{top:12px;right:11px;width:20px;height:20px;font-size:10px}.controls{padding:11px;gap:8px;border-radius:16px}.search-box{flex-basis:100%;min-width:0}.filter-select{flex:1;min-width:0;width:calc(50% - 4px)}.result-count{width:100%;margin:2px 2px 0;text-align:right}.table-head{padding:15px}.table-footer{align-items:flex-start;flex-direction:column;padding:13px 15px}.badge-grid{grid-template-columns:1fr}.modal-head{padding:20px}.modal-profile{gap:11px}.modal-student-name{font-size:20px}.modal-body{padding:18px}.modal-foot{padding:0 18px 18px}.badge-image-wrap{width:102px}.bottom-brand{font-size:9px}}
-  @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+:root{
+  --k:#0b0b0f; --b:#4285f4; --r:#ea4335; --y:#fbbc04; --g:#34a853;
+  --bt:#d2e3fc; --rt:#fad2cf; --yt:#feefc3; --gt:#cdeed6;
+  --bg:#fbfbfd; --mut:#586174;
+  --display:"Bricolage Grotesque","DM Sans",system-ui,sans-serif;
+  --body:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --bd:2.5px solid var(--k);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--k);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  background-color:var(--bg);background-image:radial-gradient(rgba(11,11,15,.13) 1.3px,transparent 1.5px);background-size:24px 24px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--k);outline-offset:3px}
+.wrap{max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,40px)}
+.dsp{font-family:var(--display);font-weight:800;letter-spacing:-.03em}
+.box{background:#fff;border:var(--bd);border-radius:18px;box-shadow:4px 4px 0 var(--k)}
+
+/* hero */
+.hero{background:var(--b);border-bottom:3px solid var(--k);position:relative;overflow:hidden;padding-bottom:64px}
+.hero:before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.35) 1.5px,transparent 1.7px);background-size:26px 26px;opacity:.7}
+.shape{position:absolute;width:170px;height:68px;border-radius:40px;border:3px solid var(--k);animation:pop .7s cubic-bezier(.3,1.7,.5,1) both}
+.s1{background:var(--y);left:-40px;top:30%;transform:rotate(-38deg);animation-delay:.1s}
+.s2{background:var(--r);right:-30px;top:8%;transform:rotate(30deg);animation-delay:.25s}
+.s3{background:var(--g);left:46%;bottom:-24px;transform:rotate(-16deg);animation-delay:.4s}
+@keyframes pop{from{opacity:0;scale:.3}to{opacity:1;scale:1}}
+.topbar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.logo{width:74px;height:56px;background:#fff;border:var(--bd);border-radius:16px;box-shadow:3px 3px 0 var(--k);display:grid;place-items:center;flex:none;transform:rotate(-4deg);overflow:hidden}
+.logo img{width:52px;height:auto;display:block}
+.brand b{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:-.02em;display:block;line-height:1.1}
+.brand small{font-size:14px;font-weight:500;color:#18181b}
+.synced{display:flex;align-items:center;gap:9px;background:#fff;border:var(--bd);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:2px 2px 0 var(--k)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--g);border:2px solid var(--k);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.2);opacity:.8}}
+.hero-grid{position:relative;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:clamp(30px,5vw,70px);align-items:center;padding-top:clamp(18px,3vw,40px)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);line-height:.88;letter-spacing:-.025em;margin:0;color:#fff;
+  -webkit-text-stroke:8px var(--k);paint-order:stroke fill;filter:drop-shadow(7px 7px 0 var(--k))}
+.lede{font-size:19px;font-weight:500;max-width:42ch;margin:30px 0 0;color:#0b0b0f}
+.camp{display:flex;flex-wrap:wrap;gap:16px;margin-top:28px}
+.days{padding:12px 20px;min-width:150px}
+.days b{font-family:var(--display);font-weight:800;font-size:52px;line-height:1;letter-spacing:-.04em;display:block}
+.days span{font-size:14px;font-weight:700}
+.goal{padding:14px 18px;flex:1 1 240px;max-width:360px}
+.goal-top{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;margin-bottom:10px}
+.pbar{height:22px;border:var(--bd);border-radius:14px;background:#fff;overflow:hidden}
+.pfill{height:100%;width:0;background:var(--y);border-right:var(--bd);border-radius:0 12px 12px 0;transition:width 1.2s cubic-bezier(.2,.8,.2,1)}
+
+/* finder */
+.finder{position:relative;padding:26px 22px 22px;background:#fff;border:3px solid var(--k);border-radius:24px;box-shadow:8px 8px 0 var(--k)}
+.finder .sticker{position:absolute;top:-38px;right:-10px;width:104px;height:80px;background:var(--y);border:3px solid var(--k);border-radius:50% 50% 50% 50%/55% 55% 45% 45%;display:grid;place-items:center;transform:rotate(9deg);box-shadow:3px 3px 0 var(--k);overflow:hidden}
+.finder .sticker img{width:68px;object-fit:contain}
+.finder h2{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.03em;margin:0 0 2px;line-height:1.1}
+.finder p{margin:0 0 14px;font-weight:500;color:var(--mut)}
+.in{width:100%;height:52px;border:var(--bd);border-radius:14px;background:#fff;padding:0 16px;font-size:16px;font-weight:500;outline:none;box-shadow:3px 3px 0 var(--k);transition:box-shadow .15s,transform .15s}
+.in:focus{box-shadow:5px 5px 0 var(--b);transform:translate(-1px,-1px)}
+.fr{margin-top:16px;min-height:104px}
+.fr-hint{border:2.5px dashed var(--k);border-radius:16px;padding:16px;font-weight:500}
+.fr-hint button{background:none;border:0;padding:0;font-weight:700;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px;color:var(--b)}
+.fr-card{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;width:100%;text-align:left;padding:14px;background:var(--yt);border:var(--bd);border-radius:16px;box-shadow:3px 3px 0 var(--k);transition:transform .12s,box-shadow .12s}
+.fr-card:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--k)}
+.fr-rank{font-family:var(--display);font-weight:800;font-size:46px;line-height:1;letter-spacing:-.04em}
+.fr-name{font-weight:700}
+.fr-gap{font-size:14px;color:#3a4254}
+.fr-pts{text-align:right;font-size:13px;font-weight:700}
+.fr-pts b{display:block;font-family:var(--display);font-size:24px;line-height:1.1}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:40px}
+.tile{padding:18px 20px;border:var(--bd);border-radius:18px;box-shadow:5px 5px 0 var(--k);background:var(--c)}
+.tile b{font-family:var(--display);font-weight:800;font-size:clamp(34px,4vw,52px);letter-spacing:-.04em;line-height:1;display:block}
+.tile span{font-weight:700;font-size:15px}
+
+/* sections */
+.sec{margin-top:70px}
+.sec h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,4.6vw,56px);letter-spacing:-.035em;line-height:1;margin:0}
+.sec>.sub{margin:10px 0 28px;font-size:17px;font-weight:500;color:var(--mut)}
+
+/* podium */
+.podium{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:20px;align-items:end}
+.pod{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;text-align:center;padding:22px 16px 150px;border:3px solid var(--k);border-radius:24px;box-shadow:7px 7px 0 var(--k);background:var(--pc);width:100%;animation:rise .75s cubic-bezier(.2,1.25,.3,1) both;transition:transform .15s,box-shadow .15s}
+.pod:hover{transform:translate(-3px,-3px);box-shadow:10px 10px 0 var(--k)}
+.p1{--pc:var(--y);min-height:470px;animation-delay:.05s}
+.p2{--pc:var(--g);min-height:410px;animation-delay:.2s}
+.p3{--pc:var(--r);min-height:370px;animation-delay:.32s}
+@keyframes rise{from{opacity:0;transform:translateY(70px)}to{opacity:1;transform:none}}
+.pod .avatar{width:78px;height:78px;border-radius:50%;font-size:24px;background:#fff!important}
+.p1 .avatar{width:92px;height:92px;font-size:28px}
+.pod-name{font-family:var(--display);font-weight:800;font-size:24px;letter-spacing:-.025em;margin-top:14px;line-height:1.1}
+.p1 .pod-name{font-size:30px}
+.pod-meta{font-weight:700;font-size:14px;margin-top:4px}
+.pod-pts{font-family:var(--display);font-weight:800;font-size:46px;letter-spacing:-.045em;line-height:1;margin-top:12px}
+.p1 .pod-pts{font-size:60px}
+.pod-pts small{font-family:var(--body);font-weight:700;font-size:14px;letter-spacing:0;margin-left:5px}
+.pod .thumbs{margin-top:14px}
+.num-big{position:absolute;left:50%;bottom:-52px;transform:translateX(-50%);font-family:var(--display);font-weight:800;font-size:190px;line-height:1;color:transparent;-webkit-text-stroke:4px var(--k);pointer-events:none}
+.p1 .num-big{font-size:230px;bottom:-62px}
+
+.thumbs{display:flex}
+.thumbs>*{width:34px;height:34px;border-radius:50%;border:2.5px solid var(--k);background:#fff;margin-left:-9px;object-fit:contain;display:grid;place-items:center;font-size:10px;font-weight:700}
+.thumbs>*:first-child{margin-left:0}
+
+.tier{display:inline-flex;align-items:center;gap:7px;border:2px solid var(--k);border-radius:999px;background:#fff;padding:2px 11px 2px 8px;font-weight:700;font-size:13px;white-space:nowrap}
+.tier i{width:11px;height:11px;border-radius:3px;background:var(--tc);border:2px solid var(--k);transform:rotate(45deg)}
+
+.avatar{display:grid;place-items:center;border:var(--bd);font-family:var(--display);font-weight:800;letter-spacing:-.02em;flex:none;color:var(--k)}
+.c0{background:var(--b)}.c1{background:var(--r)}.c2{background:var(--y)}.c3{background:var(--g)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:30px;align-items:start;margin-top:6px}
+.tabs{display:inline-flex;gap:10px;margin-bottom:18px}
+.tabs button{border:var(--bd);background:#fff;border-radius:14px;padding:9px 20px;font-weight:700;font-size:16px;box-shadow:3px 3px 0 var(--k);transition:transform .12s,box-shadow .12s}
+.tabs button:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--k)}
+.tabs button[aria-selected=true]{background:var(--y)}
+.controls{display:flex;gap:14px;flex-wrap:wrap}
+.search{flex:1 1 240px;position:relative}
+.search svg{position:absolute;left:15px;top:50%;transform:translateY(-50%);width:20px;height:20px}
+.search .in{padding-left:46px}
+.sel{height:52px;border:var(--bd);border-radius:14px;background:#fff;padding:0 14px;font-weight:700;box-shadow:3px 3px 0 var(--k);outline:none;min-width:140px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 6px}
+.chip{border:2.5px solid var(--k);background:#fff;border-radius:999px;padding:5px 16px;font-weight:700;font-size:14px;transition:transform .12s,box-shadow .12s}
+.chip:hover{transform:translate(-1px,-1px);box-shadow:2px 2px 0 var(--k)}
+.chip[aria-pressed=true]{background:var(--k);color:#fff}
+.count{margin:14px 2px 14px;font-weight:700;font-size:14px;color:var(--mut)}
+.list{display:grid;gap:14px}
+.row{display:grid;grid-template-columns:56px minmax(180px,1.5fr) 1fr 120px 150px;gap:14px;align-items:center;padding:14px 18px;width:100%;text-align:left;background:#fff;border:var(--bd);border-radius:18px;box-shadow:4px 4px 0 var(--k);transition:transform .12s,box-shadow .12s}
+.row:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--k)}
+.row:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--k)}
+.rk-w{display:flex;align-items:center;gap:8px}
+.rk{width:44px;height:44px;border-radius:50%;border:var(--bd);background:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.03em;flex:none}
+.rk.r1{background:var(--y)}.rk.r2{background:var(--g)}.rk.r3{background:var(--r)}
+.who{display:flex;align-items:center;gap:12px;min-width:0}
+.who .avatar{width:46px;height:46px;border-radius:50%;font-size:15px}
+.who b{display:block;font-weight:700;font-size:16px;line-height:1.25}
+.who small{color:var(--mut);font-size:13px;font-weight:500}
+.dpt{font-size:14px;font-weight:700}
+.dpt i{display:inline-block;width:11px;height:11px;border-radius:4px;border:2px solid var(--k);margin-right:7px;background:var(--dc)}
+.dpt small{display:block;color:var(--mut);font-weight:500;font-size:13px;margin-left:20px}
+.sc{text-align:right}
+.sc b{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.03em}
+.sc small{font-weight:700;font-size:13px;margin-left:3px}
+.meter{height:11px;border:2px solid var(--k);border-radius:8px;background:#fff;margin-top:5px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--tc);border-right:2px solid var(--k)}
+.empty{padding:40px 20px;text-align:center;font-weight:500}
+.empty b{display:block;font-family:var(--display);font-weight:800;font-size:26px;margin-bottom:4px}
+
+/* side */
+.side{display:grid;gap:22px;position:sticky;top:18px}
+.card{padding:20px}
+.card h3{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.03em;margin:0 0 2px;line-height:1.15}
+.card>p{margin:0 0 16px;color:var(--mut);font-size:14px;font-weight:500}
+.dep{margin-top:14px}
+.dep:first-child{margin-top:0}
+.dep-t{display:flex;justify-content:space-between;font-weight:700}
+.dep .meter{height:16px}
+.dep .meter i{background:var(--dc)}
+.dep small{color:var(--mut);font-size:13px;font-weight:500}
+.feed{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.feed li{display:flex;gap:12px;align-items:center;font-size:14.5px;line-height:1.35}
+.feed .thumb{width:46px;height:46px;border-radius:12px;border:2px solid var(--k);background:#fff;display:grid;place-items:center;overflow:hidden;flex:none;font-weight:700;font-size:11px}
+.feed .thumb img{width:100%;height:100%;object-fit:contain}
+.feed small{color:var(--mut);display:block;font-size:13px}
+
+/* modal */
+.backdrop{position:fixed;inset:0;background:rgba(11,11,15,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;overflow:auto}
+.backdrop.open{display:flex}
+.modal{width:min(780px,100%);max-height:92vh;overflow:auto;background:#fff;border:3px solid var(--k);border-radius:26px;box-shadow:10px 10px 0 var(--k);animation:mpop .28s cubic-bezier(.2,1.3,.4,1)}
+@keyframes mpop{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.m-head{background:var(--b);border-bottom:3px solid var(--k);padding:26px;display:flex;gap:18px;align-items:center;position:relative}
+.m-head .avatar{width:84px;height:84px;border-radius:50%;font-size:28px;background:#fff!important}
+.m-name{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,38px);letter-spacing:-.035em;line-height:1.05}
+.m-sub{font-weight:700;font-size:14px;margin:6px 0 10px}
+.m-close{position:absolute;top:14px;right:14px;width:42px;height:42px;border:var(--bd);border-radius:12px;background:#fff;font-size:24px;font-weight:700;line-height:1;box-shadow:2px 2px 0 var(--k)}
+.m-close:hover{background:var(--y)}
+.m-stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:3px solid var(--k)}
+.m-stats div{padding:16px 22px;border-left:3px solid var(--k)}
+.m-stats div:first-child{border-left:0;background:var(--yt)}
+.m-stats div:nth-child(2){background:var(--gt)}
+.m-stats div:nth-child(3){background:var(--rt)}
+.m-stats b{font-family:var(--display);font-weight:800;font-size:34px;letter-spacing:-.04em;display:block;line-height:1.05}
+.m-stats span{font-weight:700;font-size:14px}
+.m-body{padding:24px 26px 6px}
+.m-body h4{font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.03em;margin:0 0 10px}
+.next{margin-bottom:26px}
+.next-t{display:flex;justify-content:space-between;gap:10px;font-weight:700;font-size:15px;margin-bottom:10px;flex-wrap:wrap}
+.next .pbar{height:26px}
+.next .pfill{background:var(--tc);transition:none}
+.next p{margin:10px 0 0;font-weight:500;color:#2b3345}
+.mix{display:flex;height:22px;border:var(--bd);border-radius:14px;overflow:hidden;margin-bottom:10px}
+.mix i{display:block;border-right:2.5px solid var(--k)}
+.mix i:last-child{border-right:0}
+.mix-l{display:flex;gap:18px;flex-wrap:wrap;font-weight:500;font-size:14px;margin-bottom:26px}
+.mix-l span:before{content:"";display:inline-block;width:12px;height:12px;border-radius:4px;background:var(--c);border:2px solid var(--k);margin-right:7px;vertical-align:-1px}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.bcard{display:flex;gap:14px;align-items:center;border:var(--bd);border-radius:18px;padding:12px;text-decoration:none;color:inherit;background:#fff;box-shadow:3px 3px 0 var(--k);transition:transform .12s,box-shadow .12s}
+.bcard:hover{transform:translate(-2px,-2px);box-shadow:5px 5px 0 var(--k)}
+.bimg{width:84px;height:84px;border-radius:12px;background:#f1f3f9;border:2px solid var(--k);display:grid;place-items:center;flex:none;overflow:hidden}
+.bimg img{width:100%;height:100%;object-fit:contain}
+.bcard b{font-size:15px;line-height:1.3;display:block}
+.bcard small{display:block;color:var(--mut);font-size:13px;margin-top:4px;font-weight:500}
+.bcard em{font-style:normal;color:#137333;font-size:13px;font-weight:700;display:block;margin-top:6px}
+.m-foot{padding:18px 26px 26px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.m-foot p{margin:0;font-size:13px;color:var(--mut);max-width:46ch;font-weight:500}
+.btn{border:var(--bd);background:var(--y);font-weight:700;border-radius:14px;padding:11px 20px;font-size:16px;box-shadow:4px 4px 0 var(--k);transition:transform .12s,box-shadow .12s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--k)}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--k)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--k);color:#fff;border:2.5px solid #fff;padding:12px 18px;border-radius:14px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;z-index:80}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+footer{margin:80px 0 40px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font-weight:500;font-size:14px}
+footer .brand-s{display:flex;align-items:center;gap:12px;font-weight:700}
+footer img{width:44px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.btn-l{display:inline-block;background:#fff;color:var(--k);text-decoration:none;border:var(--bd);border-radius:14px;padding:10px 18px;font-weight:700;box-shadow:4px 4px 0 var(--k);transition:transform .12s,box-shadow .12s}
+.btn-l:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--k)}
+.btn-l.alt{background:var(--y)}
+.camp:empty{display:none}
+
+@media(max-width:1020px){.layout{grid-template-columns:1fr}.side{position:static;grid-template-columns:1fr 1fr}.side .card:last-child{grid-column:1/-1}.hero-grid{grid-template-columns:1fr}.finder{margin-top:20px}.stats{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){
+  .synced{display:none}.shape{display:none}
+  h1{-webkit-text-stroke:5px var(--k);filter:drop-shadow(4px 4px 0 var(--k))}
+  .podium{grid-template-columns:1fr;gap:18px}.p1{order:-1}.p1,.p2,.p3{min-height:0}
+  .pod{padding-bottom:70px}.num-big,.p1 .num-big{font-size:130px;bottom:-24px;left:auto;right:10px;transform:none}
+  .pod .thumbs{display:none}.pod-pts,.p1 .pod-pts{font-size:42px}
+  .row{grid-template-columns:56px 1fr auto;padding:12px 14px}.row .dpt,.row .thumbs{display:none}
+  .side{grid-template-columns:1fr}
+  .m-head{padding:20px 18px;padding-right:64px}.m-head .avatar{width:64px;height:64px;font-size:22px}
+  .bgrid{grid-template-columns:1fr}.m-body{padding:20px 18px 4px}.m-foot{padding:16px 18px 22px}.m-stats div{padding:12px 14px}
+  .sec{margin-top:52px}.stats{gap:12px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<div class="shell">
-  <header class="topbar">
-    <div class="brand">
-      <div class="gdg-mark" aria-label="Google Developer Groups mark">
-        <img src="/static/gdg-logo.png" alt="Google Developer Groups logo" onerror="this.onerror=null;this.src='gdg-logo.png'">
-      </div>
-      <div class="brand-copy"><div class="brand-title">GDG Cloud Leaderboard</div><div class="brand-sub">Google Developer Groups · BMSIT&M</div></div>
-    </div>
-    <div class="top-actions">
-      <div class="campaign-pill"><img src="/static/gdg-logo.png" alt="GDG" style="width:14px;height:14px;object-fit:contain;vertical-align:middle" onerror="this.style.display='none'"> 2026 Campaign</div>
-      <div class="sync-pill" id="syncPill" title="Campaign sync status"><span class="pulse yellow" id="pulseDot"></span> <span id="syncStatus">Loading…</span></div>
-    </div>
-  </header>
 
-  <main>
-    <section class="hero" aria-labelledby="page-title">
-      <div class="hero-grid">
-        <div>
-          <div class="eyebrow">Learn · Build · Earn</div>
-          <h1 id="page-title">GDG Cloud<br><span class="accent">Campaign 2026</span></h1>
-          <p class="hero-description">A little progress every day adds up. Celebrate the learners building real cloud skills, earning Google Cloud badges, and helping our campus community grow.</p>
-          <div class="hero-meta">
-            <span class="college-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 9 9-5 9 5-9 5-9-5Z"/><path d="M6 11v5c3.7 3 8.3 3 12 0v-5M21 9v6"/></svg><span id="collegeName">BMS Institute of Technology &amp; Management</span></span>
-            <span class="college-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20M16 5.2a3 3 0 0 1 0 5.6M18 14.5a4 4 0 0 1 3 3.9V20"/></svg>Campus leaderboard</span>
-          </div>
-        </div>
-        <div>
-          <div class="stats-grid">
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="8" r="3"/><path d="M3 20v-1.5A4.5 4.5 0 0 1 7.5 14h3A4.5 4.5 0 0 1 15 18.5V20M16 5.2a3 3 0 0 1 0 5.6M18 14.5a4 4 0 0 1 3 3.9V20"/></svg>Total participants</div><div class="stat-value" id="totalParticipants">—</div><div class="stat-foot">Learners on the board</div></div>
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3 14.8 8.7 21 9.6l-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9L12 3Z"/></svg>Badges earned</div><div class="stat-value" id="totalBadges">—</div><div class="stat-foot">Across the campaign</div></div>
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 19V5m0 14h16M7 15l4-4 3 2 5-6"/><path d="M15 7h4v4"/></svg>Points on display</div><div class="stat-value" id="totalPoints">—</div><div class="stat-foot">From verified learning milestones</div></div>
-            <div class="stat"><div class="stat-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Last sync</div><div class="stat-value" id="syncTime" style="font-size:24px;letter-spacing:-.035em">—</div><div class="stat-foot" id="syncDate">Not published yet</div></div>
-          </div>
-          <div class="sync-line"><span><strong>Campaign status</strong> · Active</span><span><strong>Scoring</strong> · Badge-weighted points</span></div>
+<div class="hero">
+  <span class="shape s1"></span><span class="shape s2"></span><span class="shape s3"></span>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo"><img data-logo alt="Google Developer Groups logo"></span>
+        <div><b>GDG Cloud Leaderboard</b><small id="collegeName">BMS Institute of Technology &amp; Management</small></div>
+      </div>
+      <div class="synced"><span class="dot"></span><span id="syncText">Syncing verified database...</span></div>
+    </header>
+
+    <div class="hero-grid">
+      <div>
+        <h1>Climb<br>the cloud.</h1>
+        <p class="lede">Every Google Cloud badge you finish adds points. Find your rank, see who you can catch next, and pick your next lab.</p>
+        <div class="camp" id="camp"></div>
+        <div class="cta">
+          <a class="btn-l" href="https://www.skills.google/credentials/skill_badge" target="_blank" rel="noopener noreferrer">Browse skill badges</a>
+          <a class="btn-l alt" href="https://gdg.community.dev/" target="_blank" rel="noopener noreferrer">Find your GDG chapter</a>
         </div>
       </div>
-    </section>
 
-    <section aria-labelledby="podium-heading">
-      <div class="section-heading"><div><div class="section-kicker">Leading the way</div><h2 id="podium-heading">Top of the leaderboard</h2><div class="section-sub">The people setting the pace for our cloud community.</div></div><div class="heading-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/></svg>Updated from current filters</div></div>
-      <div class="podium" id="podium"><div class="empty-state" style="grid-column:1/-1">Loading leaderboard…</div></div>
-    </section>
-
-    <section aria-labelledby="rankings-heading">
-      <div class="section-heading"><div><div class="section-kicker">Find your place</div><h2 id="rankings-heading">Student rankings</h2><div class="section-sub" id="rankingsSub">Search students, narrow the list, and open a profile to view earned badges.</div></div></div>
-      <div class="controls">
-        <label class="search-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg><input id="searchInput" type="search" placeholder="Search by student name…" autocomplete="off" aria-label="Search by student name" disabled/><span class="search-shortcut">⌕</span></label>
-        <select class="filter-select" id="departmentFilter" aria-label="Filter by department" disabled><option value="all">All departments</option></select>
-        <select class="filter-select" id="yearFilter" aria-label="Filter by year of study" disabled><option value="all">All study years</option><option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option><option value="4">4th year</option></select>
-        <div class="result-count"><strong id="resultCount">—</strong> shown</div>
-      </div>
-      <div class="table-panel">
-        <div class="table-head"><div><div class="table-title">Campaign rankings</div><div class="table-caption" id="tableCaption">Select any student to inspect their badge collection.</div></div><div class="sort-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 6h12M8 12h8M8 18h4M3 6h.01M3 12h.01M3 18h.01"/></svg>Highest score first</div></div>
-        <div class="table-scroll"><table><thead id="tableHead"><tr><th>Rank</th><th>Student</th><th>Department / year</th><th>Badge distribution</th><th>Total score</th><th aria-label="Open profile"></th></tr></thead><tbody id="studentRows"></tbody></table><div id="tableMessage" class="empty-state" role="status"><strong id="tableMessageTitle">Loading leaderboard…</strong><span id="tableMessageDetail"></span></div><div id="emptyState" class="empty-state" hidden><strong id="emptyStateTitle">No students found</strong><span id="emptyStateDetail">Try another name, department, or study year.</span></div></div>
-        <div class="table-footer"><div class="legend"><span class="legend-item"><i class="legend-square" style="background:#4285f4"></i>Skill badges (10 pts)</span><span class="legend-item"><i class="legend-square" style="background:#34a853"></i>Course badges (3 pts)</span><span class="legend-item"><i class="legend-square" style="background:#fbbc04"></i>Game badges (5 pts)</span></div><div class="footer-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>Live synced with Google Skills Boost public profile validation.</div></div>
-      </div>
-    </section>
-  </main>
-  <footer class="bottom-brand"><span>Built for a community that keeps learning.</span><span style="display:flex;align-items:center;gap:8px"><img src="/static/gdg-logo.png" alt="GDG" style="width:14px;height:14px;object-fit:contain;vertical-align:middle" onerror="this.style.display='none'"> GDG Cloud Campaign 2026 · BMSIT&amp;M</span></footer>
-</div>
-
-<div class="modal-backdrop" id="studentModal" role="dialog" aria-modal="true" aria-labelledby="modalStudentName">
-  <div class="modal">
-    <div class="modal-head">
-      <div class="modal-topline"><div class="modal-kicker">Student achievement profile</div><button class="close-btn" id="closeModal" aria-label="Close profile">×</button></div>
-      <div class="modal-profile"><div class="avatar a1" id="modalAvatar"></div><div><div class="modal-student-name" id="modalStudentName"></div><div class="modal-subtitle" id="modalSubtitle"></div></div></div>
-      <div class="modal-summary"><div class="summary-pill"><strong id="modalRank">—</strong> rank</div><div class="summary-pill"><strong id="modalScore">—</strong> points</div><div class="summary-pill"><strong id="modalBadgeCount">—</strong> badges earned</div></div>
+      <section class="finder" aria-labelledby="finderTitle">
+        <span class="sticker" aria-hidden="true"><img data-logo alt=""></span>
+        <h2 id="finderTitle">Where do you rank?</h2>
+        <p>Type your name to check your standing.</p>
+        <input class="in" id="finderInput" type="search" placeholder="e.g. Manya or Vaishnavi" autocomplete="off" aria-label="Your name">
+        <div class="fr" id="finderResult" aria-live="polite"></div>
+      </section>
     </div>
-    <div class="modal-body"><div class="modal-section-head"><h3>Google Cloud badges</h3><span id="modalBadgeLabel">Verified badge records</span></div><div class="badge-grid" id="modalBadges"></div></div>
-    <div class="modal-foot">Badge records verified automatically from Google Cloud Skills Boost public profile links. <a href="https://www.skills.google/credentials/skill_badge" target="_blank" rel="noopener noreferrer">Explore Google Cloud skill badges ↗</a></div>
   </div>
 </div>
-<div class="toast" id="toast" role="status" aria-live="polite">Profile opened</div>
+
+<main class="wrap">
+  <section class="stats" aria-label="Campaign totals">
+    <div class="tile" style="--c:var(--b)"><b id="sP">0</b><span>Learners on the board</span></div>
+    <div class="tile" style="--c:var(--y)"><b id="sB">0</b><span>Badges earned</span></div>
+    <div class="tile" style="--c:var(--g)"><b id="sPt">0</b><span>Points scored</span></div>
+    <div class="tile" style="--c:var(--r)"><b id="sTop">0</b><span>Highest score</span></div>
+  </section>
+
+  <section class="sec" aria-labelledby="podH">
+    <h2 id="podH">The top three</h2>
+    <p class="sub">Tap a winner to see their badges.</p>
+    <div class="podium" id="podium"></div>
+  </section>
+
+  <section class="sec" aria-labelledby="rankH">
+    <h2 id="rankH">Full rankings</h2>
+    <p class="sub">Highest points first. Filter by department or search by name.</p>
+    <div class="layout">
+      <div>
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected="true" id="tabAll">Students</button>
+          <button role="tab" aria-selected="false" id="tabDept">Departments</button>
+        </div>
+        <div id="studentsPane">
+          <div class="controls">
+            <label class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.2 4.2"/></svg>
+              <input class="in" id="q" type="search" placeholder="Search by student name... (press / to jump here)" autocomplete="off" aria-label="Search by student name">
+            </label>
+            <select class="sel" id="yearSel" aria-label="Filter by year">
+              <option value="all">All years</option>
+              <option value="1">1st year</option>
+              <option value="2">2nd year</option>
+              <option value="3">3rd year</option>
+              <option value="4">4th year</option>
+            </select>
+          </div>
+          <div class="chips" id="chips" role="group" aria-label="Filter by department"></div>
+          <div class="count" id="count"></div>
+          <div class="list" id="list"></div>
+        </div>
+        <div id="deptPane" hidden><div class="box card" id="deptFull"></div></div>
+      </div>
+
+      <aside class="side">
+        <div class="box card">
+          <h3>Departments</h3>
+          <p>Total points</p>
+          <div id="deptMini"></div>
+        </div>
+        <div class="box card">
+          <h3>Latest badges</h3>
+          <p>Fresh from the campus</p>
+          <ul class="feed" id="feed"></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <footer class="box">
+    <span class="brand-s"><img data-logo alt="">GDG Cloud Campaign 2026 — BMSIT&amp;M</span>
+    <span>Live data verified from Google Cloud Skills Boost profiles.</span>
+  </footer>
+</main>
+
+<div class="backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalStudentName">
+  <div class="modal">
+    <div class="m-head">
+      <button class="m-close" id="closeModal" aria-label="Close">×</button>
+      <div class="avatar c0" id="modalAvatar"></div>
+      <div>
+        <div class="m-name" id="modalStudentName"></div>
+        <div class="m-sub" id="modalSubtitle"></div>
+        <div id="modalTier"></div>
+      </div>
+    </div>
+    <div class="m-stats">
+      <div><b id="modalRank">--</b><span>Rank</span></div>
+      <div><b id="modalScore">0</b><span>Points</span></div>
+      <div><b id="modalCount">0</b><span>Badges shown</span></div>
+    </div>
+    <div class="m-body">
+      <div class="next" id="modalNext"></div>
+      <h4>Badge mix</h4>
+      <div class="mix" id="modalMix"></div>
+      <div class="mix-l" id="modalMixL"></div>
+      <h4>Google Cloud badges</h4>
+      <div class="bgrid" id="modalBadges"></div>
+    </div>
+    <div class="m-foot">
+      <p>Badge verification pulled directly from Google Cloud Skills Boost profiles.</p>
+      <button class="btn" id="modalShare">Copy my rank</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-const deptNames = {
-  CSE: 'Computer Science',
-  'AI&ML': 'AI & Machine Learning',
-  AIML: 'AI & Machine Learning',
-  CSBS: 'Computer Science & Business Systems',
-  ECE: 'Electronics & Communication',
-  EEE: 'Electrical & Electronics',
-  Mechanical: 'Mechanical Engineering',
-  ME: 'Mechanical Engineering',
-  ISE: 'Information Science'
-};
-
-const $ = s => document.querySelector(s);
-const fmt = n => Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 1 });
-const colors = ['a1','a2','a3','a4','a5','a6','a7','a8','a9','a10'];
+const LOGO = '/static/gdg-logo.png';
 const DASH = '—';
 const FALLBACK_BADGE_URL = 'https://www.skills.google';
-const BADGE_PLACEHOLDER = '<span class="badge-fallback">Google Cloud<br>Badge</span>';
+const CONFIG = {
+  college: 'BMS Institute of Technology & Management',
+  goalParticipants: 350,
+  endDate: '2026-11-20'
+};
 
-const SOLO_HEAD = '<tr><th>Rank</th><th>Student</th><th>Department / year</th><th>Badge distribution</th><th>Total score</th><th aria-label="Open profile"></th></tr>';
-const TEAM_HEAD = '<tr><th>Rank</th><th>Team</th><th>Members</th><th>Counted badges</th><th>Total score</th></tr>';
+const KNOWN_DEPTS = {
+  'CSE': { label: 'Computer Science', c: '#4285f4' },
+  'AI&ML': { label: 'Artificial Intelligence & Machine Learning', c: '#ea4335' },
+  'ECE': { label: 'Electronics & Communication', c: '#fbbc04' },
+  'CSBS': { label: 'Computer Science & Business Systems', c: '#34a853' },
+  'EEE': { label: 'Electrical & Electronics', c: '#9c27b0' },
+  'Mechanical': { label: 'Mechanical', c: '#ff7043' },
+  'ISE': { label: 'Information Science', c: '#009688' }
+};
+const PALETTE = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#9c27b0', '#ff7043', '#009688', '#3f51b5', '#e91e63', '#00bcd4'];
 
-// Entries stay in the order the API returned them; ranks come from the API too.
-let mode = 'solo';
-let entries = [];
-let visible = [];
-let lastFocused = null;
-let modalToken = 0;
-const memberCache = {};
+const MIX_CATEGORIES = {
+  skill_badge: { n: 'Skill badges', c: '#4285f4' },
+  course_badge: { n: 'Course badges', c: '#34a853' },
+  game_badge: { n: 'Trivia & game badges', c: '#fbbc04' },
+  other: { n: 'Other badges', c: '#ea4335' }
+};
 
-// Every API-provided value that goes into innerHTML must pass through this.
+let DEPTS = {};
+let allStudents = [];
+let allTeams = [];
+let currentMode = 'solo';
+let maxScore = 1;
+let filters = { q: '', dept: 'all', year: 'all' };
+let studentBadgesCache = {};
+let latestFeedEvents = [];
+let lastFocus = null, toastT;
+
+const $ = s => document.querySelector(s);
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"'`]/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
@@ -284,10 +428,6 @@ function safeImageUrl(url) {
 
 function safeBadgeUrl(url) {
   return typeof url === 'string' && url.startsWith('https://www.skills.google/') ? url : FALLBACK_BADGE_URL;
-}
-
-function orDash(value) {
-  return value === null || value === undefined || String(value).trim() === '' ? DASH : String(value);
 }
 
 function rankLabel(rank) {
@@ -304,458 +444,486 @@ function yearLabel(year) {
   return `${n}${suffix} year`;
 }
 
-function deptLabel(dept) {
-  if (!dept) return DASH;
-  return deptNames[dept] ? `${deptNames[dept]} (${dept})` : dept;
-}
+const fmt = n => Number(n || 0).toLocaleString('en-IN');
+const ord = yearLabel;
+const initials = name => (name || '').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'ST';
+const ac = item => 'c' + (Math.abs(Number(item.id || 0)) % 4);
 
-function getInitials(name) {
-  if (!name || !name.trim()) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function toStudent(e, idx) {
-  const counts = (e.breakdown && e.breakdown.counts_by_category) || {};
-  return {
-    id: e.id,
-    rank: e.rank,
-    name: e.name || '',
-    dept: e.department || '',
-    year: e.year ?? null,
-    score: e.score || 0,
-    counted: e.counted_badges || 0,
-    badges: { skill: counts.skill_badge || 0, course: counts.course_badge || 0, game: counts.game_badge || 0 },
-    avatar: getInitials(e.name),
-    color: colors[idx % colors.length]
+document.querySelectorAll('[data-logo]').forEach(i => {
+  i.src = LOGO;
+  i.onerror = () => {
+    i.outerHTML = '<svg viewBox="0 0 52 26" width="52" height="26"><path d="M14 2L2 13l12 11M38 2l12 11-12 11" fill="none" stroke="#4285f4" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   };
+});
+
+function toast(m) {
+  const t = $('#toast');
+  t.textContent = m;
+  t.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-function toTeam(e, idx) {
-  return {
-    id: e.id,
-    rank: e.rank,
-    name: e.name || '',
-    score: e.score || 0,
-    counted: e.counted_badges || 0,
-    members: (e.members || []).map(m => ({ id: m.member_id, name: m.name || '', score: m.score || 0 })),
-    avatar: getInitials(e.name),
-    color: colors[idx % colors.length]
-  };
-}
-
-function setControlsEnabled(enabled) {
-  ['#searchInput', '#departmentFilter', '#yearFilter'].forEach(sel => { $(sel).disabled = !enabled; });
-}
-
-function setSyncState(label, ok) {
-  $('#syncStatus').textContent = label;
-  $('#pulseDot').className = ok ? 'pulse' : 'pulse yellow';
-}
-
-// Clears every rendered entry and shows a message instead. Never falls back to cached or sample data.
-function showMessage(title, detail, syncLabel) {
-  entries = [];
-  visible = [];
-  setControlsEnabled(false);
-  setSyncState(syncLabel, false);
-  const podiumMsg = document.createElement('div');
-  podiumMsg.className = 'empty-state';
-  podiumMsg.style.gridColumn = '1/-1';
-  podiumMsg.textContent = title;
-  $('#podium').replaceChildren(podiumMsg);
-  $('#studentRows').replaceChildren();
-  $('#emptyState').hidden = true;
-  $('#tableMessage').hidden = false;
-  $('#tableMessageTitle').textContent = title;
-  $('#tableMessageDetail').textContent = detail;
-  $('#resultCount').textContent = '0';
-  ['#totalParticipants', '#totalBadges', '#totalPoints', '#syncTime'].forEach(sel => { $(sel).textContent = DASH; });
-  $('#syncDate').textContent = title;
-}
-
-function setMode(next) {
-  mode = next;
-  const team = mode === 'team';
-  $('#departmentFilter').hidden = team;
-  $('#yearFilter').hidden = team;
-  $('#rankings-heading').textContent = team ? 'Team rankings' : 'Student rankings';
-  $('#rankingsSub').textContent = team
-    ? 'Search teams or members, and open a member to view their earned badges.'
-    : 'Search students, narrow the list, and open a profile to view earned badges.';
-  $('#tableCaption').textContent = team
-    ? 'Select any member to inspect their badge collection.'
-    : 'Select any student to inspect their badge collection.';
-  const placeholder = team ? 'Search by team or member name…' : 'Search by student name…';
-  $('#searchInput').placeholder = placeholder;
-  $('#searchInput').setAttribute('aria-label', placeholder.replace('…', ''));
-  $('#tableHead').innerHTML = team ? TEAM_HEAD : SOLO_HEAD;
-  $('#emptyStateTitle').textContent = team ? 'No teams found' : 'No students found';
-  $('#emptyStateDetail').textContent = team
-    ? 'Try another team or member name.'
-    : 'Try another name, department, or study year.';
-}
-
-function populateDepartments(deptList) {
-  const sel = $('#departmentFilter');
-  const currentVal = sel.value;
-  const all = document.createElement('option');
-  all.value = 'all';
-  all.textContent = 'All departments';
-  sel.replaceChildren(all);
-  const sorted = [...new Set(deptList.filter(Boolean))].sort();
-  sorted.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d;
-    opt.textContent = deptLabel(d);
-    sel.appendChild(opt);
+function buildDynamicDepts(items) {
+  DEPTS = {};
+  let colorIdx = 0;
+  items.forEach(item => {
+    const code = item.dept || 'General';
+    if (!DEPTS[code]) {
+      if (KNOWN_DEPTS[code]) {
+        DEPTS[code] = { ...KNOWN_DEPTS[code] };
+      } else {
+        DEPTS[code] = {
+          label: code,
+          c: PALETTE[colorIdx % PALETTE.length]
+        };
+        colorIdx++;
+      }
+    }
   });
-  if (sorted.includes(currentVal)) {
-    sel.value = currentVal;
+}
+
+function countUp(el, to, short) {
+  if (!el) return;
+  const target = Number(to || 0);
+  const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+  const show = v => el.textContent = short && v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : fmt(Math.round(v));
+  if (reduce) { show(target); return; }
+  const t0 = performance.now(), dur = 1100;
+  (function f(t) {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    show(target * e);
+    if (p < 1) requestAnimationFrame(f);
+  })(t0);
+}
+
+function renderHero(publishedAt) {
+  $('#collegeName').textContent = CONFIG.college;
+  const nP = currentMode === 'team' ? allTeams.reduce((n, t) => n + t.members.length, 0) : allStudents.length;
+  const nB = (currentMode === 'team' ? allTeams : allStudents).reduce((a, item) => a + (item.counted_badges || 0), 0);
+  const nPt = (currentMode === 'team' ? allTeams : allStudents).reduce((a, item) => a + (item.score || 0), 0);
+
+  const box = [];
+  if (CONFIG.endDate) {
+    const left = Math.ceil((new Date(CONFIG.endDate + 'T23:59:59') - new Date()) / 864e5);
+    box.push(`<div class="box days"><b>${Math.max(left, 0)}</b><span>${left > 1 ? 'days left' : left === 1 ? 'day left' : 'campaign ended'}</span></div>`);
+  }
+  if (CONFIG.goalParticipants) {
+    box.push(`<div class="box goal"><div class="goal-top"><span>Campus goal</span><span>${fmt(nP)} of ${fmt(CONFIG.goalParticipants)} learners</span></div><div class="pbar"><div class="pfill" id="goalFill"></div></div></div>`);
+  }
+  $('#camp').innerHTML = box.join('');
+  const gf = $('#goalFill');
+  if (gf) requestAnimationFrame(() => gf.style.width = Math.min(100, (nP / CONFIG.goalParticipants) * 100) + '%');
+
+  countUp($('#sP'), nP);
+  countUp($('#sB'), nB);
+  countUp($('#sPt'), nPt, true);
+  countUp($('#sTop'), maxScore);
+
+  if (publishedAt) {
+    const d = new Date(publishedAt);
+    $('#syncText').textContent = 'Updated ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' }) + ', ' + d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+  } else {
+    $('#syncText').textContent = 'Live verified data';
   }
 }
 
 function renderPodium() {
-  const wrap = $('#podium');
-  const picks = visible.slice(0, 3);
-  if (!picks.length) {
-    wrap.innerHTML = `<div class="empty-state" style="grid-column:1/-1">No ${mode === 'team' ? 'teams' : 'students'} match these filters.</div>`;
-    return;
-  }
-  const placeMap = {
-    1: { label: '1ST PLACE', medal: '★' },
-    2: { label: '2ND PLACE', medal: 'Ⅱ' },
-    3: { label: '3RD PLACE', medal: 'Ⅲ' }
-  };
-  const slotClass = ['first', 'second', 'third'];
-  const order = [picks[1], picks[0], picks[2]].filter(Boolean);
-  wrap.innerHTML = order.map(item => {
-    const cls = slotClass[picks.indexOf(item)];
-    const p = placeMap[item.rank] || { label: `RANK ${rankLabel(item.rank)}`, medal: orDash(item.rank) };
-    const name = escapeHtml(orDash(item.name));
-    const detail = mode === 'team'
-      ? `${item.members.length} ${item.members.length === 1 ? 'member' : 'members'}`
-      : `${escapeHtml(orDash(item.dept))} · ${escapeHtml(yearLabel(item.year))}`;
-    const body = `<span class="podium-rank">${escapeHtml(p.label)}</span>
-      <span class="medal">${escapeHtml(p.medal)}</span>
-      <span class="avatar ${item.color}">${escapeHtml(item.avatar)}</span>
-      <span class="podium-name">${name}</span>
-      <span class="podium-detail">${detail}</span>
-      <span class="podium-points"><strong>${escapeHtml(fmt(item.score))}</strong><span>points</span></span>
-      <span class="podium-badges">
-        <svg class="mini-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.7-.9A4.5 4.5 0 0 0 7 18Z"/>
-        </svg>${escapeHtml(item.counted)} badges
-      </span>`;
-    if (mode === 'team') {
-      return `<div class="podium-card ${cls}">${body}</div>`;
-    }
-    return `<button class="podium-card ${cls}" data-student="${escapeHtml(item.id)}" aria-label="Open ${name}'s badge profile">${body}</button>`;
-  }).join('');
+  const items = currentMode === 'team' ? allTeams : allStudents;
+  if (items.length < 3) return;
+  const a = items[0], b = items[1], c = items[2];
+  const order = [[b, 2], [a, 1], [c, 3]];
+  $('#podium').innerHTML = order.map(([item, r]) => `
+    <button class="pod p${r}" data-id="${item.id}" aria-label="Open ${escapeHtml(item.name)}, rank ${r}">
+      <span class="avatar ${ac(item)}">${initials(item.name)}</span>
+      <span class="pod-name">${escapeHtml(item.name)}</span>
+      <span class="pod-meta">${escapeHtml(item.dept)}, ${ord(item.year)}</span>
+      <span class="pod-pts">${fmt(item.score)}<small>points</small></span>
+      <span class="thumbs" id="podThumbs-${item.id}"></span>
+      <span class="num-big" aria-hidden="true">${r}</span>
+    </button>
+  `).join('');
+  document.querySelectorAll('.pod').forEach(p => p.onclick = () => openModal(+p.dataset.id));
+  order.forEach(([item]) => renderStudentThumbs(item, `#podThumbs-${item.id}`));
+}
 
-  wrap.querySelectorAll('[data-student]').forEach(b => {
-    b.addEventListener('click', () => openStudent(Number(b.dataset.student)));
+function renderChips() {
+  const deptsKeys = Object.keys(DEPTS);
+  const opts = [['all', 'All']].concat(deptsKeys.map(k => [k, k]));
+  $('#chips').innerHTML = opts.map(([k, l]) => `
+    <button class="chip" data-d="${k}" aria-pressed="${filters.dept === k}" ${k !== 'all' ? `title="${escapeHtml(DEPTS[k].label)}"` : ''}>${l}</button>
+  `).join('');
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    filters.dept = c.dataset.d;
+    renderChips();
+    if (currentMode === 'team') {
+      renderTeamRows();
+    } else {
+      renderStudentRows();
+    }
   });
 }
 
+function renderStudentThumbs(item, targetSelector) {
+  const el = $(targetSelector);
+  if (!el) return;
+  if (studentBadgesCache[item.id]) {
+    const list = studentBadgesCache[item.id].slice(0, 3);
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = list.map(b => `<img src="${safeImageUrl(b.image_url)}" alt="${escapeHtml(b.title)}" title="${escapeHtml(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
+  } else if (item.counted_badges > 0) {
+    fetch(`/api/members/${item.id}`).then(r => r.json()).then(data => {
+      const bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
+      studentBadgesCache[item.id] = bList;
+      const list = bList.slice(0, 3);
+      if (list.length) {
+        el.innerHTML = list.map(b => `<img src="${safeImageUrl(b.image_url)}" alt="${escapeHtml(b.title)}" title="${escapeHtml(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
+      }
+    }).catch(() => {});
+  }
+}
+
 function renderStudentRows() {
-  const tbody = $('#studentRows');
-  tbody.innerHTML = visible.map(s => {
-    const name = escapeHtml(orDash(s.name));
-    const dept = escapeHtml(orDash(s.dept));
-    const fullDept = deptNames[s.dept] ? `<span style="color:#929aa7;font-weight:500">· ${escapeHtml(deptNames[s.dept])}</span>` : '';
-    const year = escapeHtml(yearLabel(s.year));
-    return `<tr data-student="${escapeHtml(s.id)}" tabindex="0" aria-label="Open ${name}'s badge profile">
-      <td class="rank-cell"><span class="rank-number">${escapeHtml(rankLabel(s.rank))}</span></td>
-      <td>
-        <div class="student-cell">
-          <span class="avatar ${s.color}">${escapeHtml(s.avatar)}</span>
-          <span>
-            <div class="student-name">${name}</div>
-            <div class="student-tag">${dept} · ${year}</div>
-          </span>
-        </div>
-      </td>
-      <td>
-        <div class="dept-main">${dept} ${fullDept}</div>
-        <span class="year-tag">${year}</span>
-      </td>
-      <td>
-        <div class="badge-chips">
-          <span class="badge-chip blue"><i class="chip-dot"></i>${escapeHtml(s.badges.skill)} Skill</span>
-          <span class="badge-chip green"><i class="chip-dot"></i>${escapeHtml(s.badges.course)} Course</span>
-          ${s.badges.game ? `<span class="badge-chip yellow"><i class="chip-dot"></i>${escapeHtml(s.badges.game)} Game</span>` : ''}
-        </div>
-      </td>
-      <td class="score-cell">${escapeHtml(fmt(s.score))}<span class="score-unit">pts</span></td>
-      <td class="row-action">↗</td>
-    </tr>`;
+  const q = filters.q.trim().toLowerCase();
+  const rows = allStudents.filter(s => {
+    const matchQ = !q || s.name.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
+    const matchDept = filters.dept === 'all' || s.dept === filters.dept;
+    const matchYear = filters.year === 'all' || String(s.year) === filters.year;
+    return matchQ && matchDept && matchYear;
+  });
+
+  $('#count').textContent = rows.length === 1 ? '1 student' : rows.length + ' students';
+  if (!rows.length) {
+    $('#list').innerHTML = `<div class="box empty"><b>No one matches that</b>Try searching a different name, or clear the department and year filters.</div>`;
+    return;
+  }
+
+  $('#list').innerHTML = rows.map(s => {
+    const d = DEPTS[s.dept] || { c: '#4285f4', name: s.dept };
+    const r = s.rank;
+    const rk = rankLabel(s.rank);
+    const pct = maxScore > 0 ? (s.score / maxScore * 100) : 0;
+    return `
+      <button class="row" data-id="${s.id}" aria-label="Open ${escapeHtml(s.name)}">
+        <span class="rk-w"><span class="rk ${r <= 3 ? 'r' + r : ''}">${rk}</span></span>
+        <span class="who">
+          <span class="avatar ${ac(s)}">${initials(s.name)}</span>
+          <span><b>${escapeHtml(s.name)}</b><small>${escapeHtml(s.dept)} · ${ord(s.year)}</small></span>
+        </span>
+        <span class="dpt" style="--dc:${d.c}">
+          <span><i></i>${escapeHtml(s.dept)}</span>
+          <small>${ord(s.year)}</small>
+        </span>
+        <span class="thumbs" id="rowThumbs-${s.id}"></span>
+        <span class="sc" style="--tc:${d.c}">
+          <b>${fmt(s.score)}</b><small>pts</small>
+          <div class="meter"><i style="width:${pct}%"></i></div>
+        </span>
+      </button>
+    `;
   }).join('');
 
-  tbody.querySelectorAll('[data-student]').forEach(row => {
-    row.addEventListener('click', () => openStudent(Number(row.dataset.student)));
-    row.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        openStudent(Number(row.dataset.student));
-      }
-    });
+  document.querySelectorAll('.row').forEach(r => r.onclick = () => openModal(+r.dataset.id));
+  rows.forEach(s => {
+    if (s.counted_badges > 0) renderStudentThumbs(s, `#rowThumbs-${s.id}`);
   });
 }
 
 function renderTeamRows() {
-  const tbody = $('#studentRows');
-  tbody.innerHTML = visible.map(t => {
-    const members = t.members.length
-      ? t.members.map(m => {
-          const memberName = escapeHtml(orDash(m.name));
-          return `<button type="button" class="member-link" data-member="${escapeHtml(m.id)}" data-team="${escapeHtml(t.id)}" aria-label="Open ${memberName}'s badge profile">${memberName} <span>${escapeHtml(fmt(m.score))} pts</span></button>`;
-        }).join('')
-      : DASH;
-    return `<tr class="team-row">
-      <td class="rank-cell"><span class="rank-number">${escapeHtml(rankLabel(t.rank))}</span></td>
-      <td>
-        <div class="student-cell">
-          <span class="avatar ${t.color}">${escapeHtml(t.avatar)}</span>
-          <span>
-            <div class="student-name">${escapeHtml(orDash(t.name))}</div>
-            <div class="student-tag">${t.members.length} ${t.members.length === 1 ? 'member' : 'members'}</div>
-          </span>
-        </div>
-      </td>
-      <td><div class="member-list">${members}</div></td>
-      <td><span class="badge-chip blue"><i class="chip-dot"></i>${escapeHtml(t.counted)} counted</span></td>
-      <td class="score-cell">${escapeHtml(fmt(t.score))}<span class="score-unit">pts</span></td>
-    </tr>`;
-  }).join('');
-
-  tbody.querySelectorAll('[data-member]').forEach(btn => {
-    btn.addEventListener('click', () => openTeamMember(Number(btn.dataset.team), Number(btn.dataset.member)));
+  const q = filters.q.trim().toLowerCase();
+  const rows = allTeams.filter(t => {
+    const matchQ = !q || t.name.toLowerCase().includes(q);
+    return matchQ;
   });
-}
 
-function renderRows() {
-  const noun = mode === 'team' ? ['team', 'teams'] : ['student', 'students'];
-  $('#resultCount').textContent = `${visible.length} ${visible.length === 1 ? noun[0] : noun[1]}`;
-  $('#tableMessage').hidden = true;
-  $('#emptyState').hidden = visible.length > 0;
-  if (mode === 'team') renderTeamRows();
-  else renderStudentRows();
-}
-
-// Filters only hide rows; order and rank numbers stay exactly as the API returned them.
-function updateFilters() {
-  const q = $('#searchInput').value.trim().toLowerCase();
-  if (mode === 'team') {
-    visible = entries.filter(t =>
-      !q || t.name.toLowerCase().includes(q) || t.members.some(m => m.name.toLowerCase().includes(q)));
-  } else {
-    const dept = $('#departmentFilter').value;
-    const year = $('#yearFilter').value;
-    visible = entries.filter(s => {
-      const matchQuery = !q || s.name.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
-      const matchDept = dept === 'all' || s.dept === dept;
-      const matchYear = year === 'all' || String(s.year ?? '').trim() === year;
-      return matchQuery && matchDept && matchYear;
-    });
-  }
-  renderPodium();
-  renderRows();
-}
-
-function setModalHeader(info) {
-  $('#modalAvatar').className = `avatar ${info.color || 'a1'}`;
-  $('#modalAvatar').textContent = getInitials(info.name);
-  $('#modalStudentName').textContent = orDash(info.name);
-  const parts = [];
-  if (info.team) parts.push(`Team ${info.team}`);
-  parts.push(deptLabel(info.dept), yearLabel(info.year));
-  $('#modalSubtitle').textContent = parts.join(' · ');
-  $('#modalRank').textContent = info.rank === null || info.rank === undefined ? DASH : `#${info.rank}`;
-  $('#modalScore').textContent = info.score === null || info.score === undefined ? DASH : fmt(info.score);
-  $('#modalBadgeCount').textContent = info.counted === null || info.counted === undefined ? DASH : info.counted;
-}
-
-function renderBadges(badges) {
-  const grid = $('#modalBadges');
-  if (!badges.length) {
-    $('#modalBadgeLabel').textContent = 'No badges earned yet';
-    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:32px 16px;color:#7a8594;background:#f9fafc;border-radius:16px;border:1px dashed #e1e6ee">
-      <strong style="display:block;font-size:14px;color:#2c3440;margin-bottom:6px">No Badges Completed Yet</strong>
-      Badges will appear here as soon as they are earned and verified during the next daily sync.
-    </div>`;
+  $('#count').textContent = rows.length === 1 ? '1 team' : rows.length + ' teams';
+  if (!rows.length) {
+    $('#list').innerHTML = `<div class="box empty"><b>No teams found</b>Try another search.</div>`;
     return;
   }
-  $('#modalBadgeLabel').textContent = `${badges.length} verified badge ${badges.length === 1 ? 'record' : 'records'}`;
-  grid.innerHTML = badges.map(b => {
-    const title = escapeHtml(orDash(b.title));
-    const cat = escapeHtml(String(b.category || 'other').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
-    const date = escapeHtml(b.earned_date || 'Verified');
-    const img = safeImageUrl(b.image_url);
-    const media = img ? `<img loading="lazy" src="${escapeHtml(img)}" alt="${title} badge">` : BADGE_PLACEHOLDER;
-    return `<a class="badge-card" href="${escapeHtml(safeBadgeUrl(b.badge_url))}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:inherit">
-      <span class="badge-image-wrap">${media}</span>
-      <span class="badge-info">
-        <span class="badge-title">${title}</span>
-        <span class="badge-type">${cat}</span>
-        <span class="badge-date">Earned ${date}</span>
-      </span>
-    </a>`;
+
+  $('#list').innerHTML = rows.map(t => {
+    const r = t.rank;
+    const rk = rankLabel(t.rank);
+    const pct = maxScore > 0 ? (t.score / maxScore * 100) : 0;
+    return `
+      <button class="row" data-id="${t.id}" aria-label="Open ${escapeHtml(t.name)}">
+        <span class="rk-w"><span class="rk ${r <= 3 ? 'r' + r : ''}">${rk}</span></span>
+        <span class="who">
+          <span class="avatar ${ac(t)}">${initials(t.name)}</span>
+          <span><b>${escapeHtml(t.name)}</b><small>${t.members.length} members</small></span>
+        </span>
+        <span class="dpt" style="--dc:#4285f4">
+          <span><i></i>Team</span>
+          <small>${t.members.length} members</small>
+        </span>
+        <span class="thumbs"></span>
+        <span class="sc" style="--tc:#4285f4">
+          <b>${fmt(t.score)}</b><small>pts</small>
+          <div class="meter"><i style="width:${pct}%"></i></div>
+        </span>
+      </button>
+    `;
   }).join('');
-  grid.querySelectorAll('img').forEach(img => {
-    img.addEventListener('error', () => { img.parentElement.innerHTML = BADGE_PLACEHOLDER; }, { once: true });
+}
+
+function deptStats() {
+  const m = {};
+  allStudents.forEach(s => {
+    const code = s.dept;
+    if (!m[code]) m[code] = { k: code, pts: 0, n: 0, badges: 0 };
+    m[code].pts += s.score;
+    m[code].n++;
+    m[code].badges += (s.counted_badges || 0);
   });
+  return Object.values(m).sort((a, b) => b.pts - a.pts);
 }
 
-function openStudent(id) {
-  const s = entries.find(x => x.id === id);
+function deptHTML(list, detail) {
+  const mx = list.length && list[0].pts > 0 ? list[0].pts : 1;
+  return list.map(d => {
+    const conf = DEPTS[d.k] || { label: d.k, c: '#4285f4' };
+    const pct = (d.pts / mx) * 100;
+    const avg = d.n > 0 ? (d.pts / d.n).toFixed(1).replace(/\.0$/, '') : 0;
+    return `
+      <div class="dep" style="--dc:${conf.c}">
+        <div class="dep-t"><span>${escapeHtml(detail ? conf.label : d.k)}</span><span>${fmt(d.pts)} pts</span></div>
+        <div class="meter"><i style="width:${pct}%"></i></div>
+        ${detail ? `<small>${d.n} on the board · ${d.badges} badges earned · ${avg} average points</small>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDepts() {
+  const l = deptStats();
+  $('#deptMini').innerHTML = deptHTML(l, false);
+  $('#deptFull').innerHTML = `<h3>Department standings</h3><p>Combined points of the students enrolled from the verified database.</p>` + deptHTML(l, true);
+}
+
+function renderFeed() {
+  if (!latestFeedEvents.length) {
+    $('#feed').innerHTML = `<li><span class="thumb">GC</span><span><b>All verified badges</b> earned by students appear here as they are synced.<small>Live sync</small></span></li>`;
+    return;
+  }
+  $('#feed').innerHTML = latestFeedEvents.slice(0, 5).map(e => `
+    <li>
+      <span class="thumb"><img src="${safeImageUrl(e.image)}" alt="" loading="lazy" onerror="this.outerHTML='GC'"></span>
+      <span><b>${escapeHtml(e.name)}</b> finished ${escapeHtml(e.title)}<small>${escapeHtml(e.date)}</small></span>
+    </li>
+  `).join('');
+}
+
+function renderFinder() {
+  const raw = $('#finderInput').value.trim(), v = raw.toLowerCase(), box = $('#finderResult');
+  if (!v) {
+    const demoName = allStudents.length ? allStudents[0].name : '';
+    box.innerHTML = `<div class="fr-hint">Your rank, your points, and the gap to the next person show up here.${demoName ? ` Try <button type="button" id="tryDemo">${escapeHtml(demoName)}</button>` : ''}</div>`;
+    const b = $('#tryDemo');
+    if (b) b.onclick = () => { $('#finderInput').value = demoName; renderFinder(); };
+    return;
+  }
+  const s = allStudents.find(x => x.name.toLowerCase() === v) || allStudents.find(x => x.name.toLowerCase().includes(v));
+  if (!s) {
+    box.innerHTML = `<div class="fr-hint">No student matching “${escapeHtml(raw)}”. Check the spelling or search your first name.</div>`;
+    return;
+  }
+  const r = s.rank;
+  const above = allStudents.find(x => x.rank === r - 1);
+  const gap = above ? `${fmt(above.score - s.score)} points behind ${escapeHtml(above.name)}` : 'Currently in first place!';
+  box.innerHTML = `
+    <button class="fr-card" data-id="${s.id}">
+      <span class="fr-rank">#${r}</span>
+      <span><div class="fr-name">${escapeHtml(s.name)}</div><div class="fr-gap">${gap}</div></span>
+      <span class="fr-pts"><b>${fmt(s.score)}</b>points</span>
+    </button>
+  `;
+  box.querySelector('.fr-card').onclick = () => openModal(s.id);
+}
+
+function renderBadges(bList) {
+  if (!bList.length) {
+    $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;padding:30px 14px;border:2.5px dashed var(--k);border-radius:18px;text-align:center"><b>No Google Cloud badges completed yet.</b><small style="display:block;margin-top:6px;color:var(--mut)">Complete skill labs on Google Cloud Skills Boost to climb the leaderboard.</small></div>`;
+  } else {
+    $('#modalBadges').innerHTML = bList.map(b => `
+      <a class="bcard" href="${safeBadgeUrl(b.badge_url)}" target="_blank" rel="noopener noreferrer">
+        <span class="bimg"><img src="${safeImageUrl(b.image_url)}" alt="" loading="lazy" onerror="this.outerHTML='<b style=&quot;font-size:12px&quot;>Badge</b>'"></span>
+        <span>
+          <b>${escapeHtml(b.title)}</b>
+          <small>${escapeHtml(b.category || 'Skill Badge')}${b.level ? ` · ${escapeHtml(b.level)}` : ''}</small>
+          <em>Finished ${b.earned_date ? escapeHtml(b.earned_date) : 'Verified'}</em>
+        </span>
+      </a>
+    `).join('');
+  }
+}
+
+async function openModal(id) {
+  const s = allStudents.find(x => x.id === id);
   if (!s) return;
-  openModal(id, { name: s.name, dept: s.dept, year: s.year, rank: s.rank, score: s.score, counted: s.counted, color: s.color });
-}
+  lastFocus = document.activeElement;
 
-function openTeamMember(teamId, memberId) {
-  const team = entries.find(t => t.id === teamId);
-  const m = team && team.members.find(x => x.id === memberId);
-  if (!m) return;
-  openModal(memberId, { name: m.name, team: team.name, rank: null, score: m.score, counted: null, color: team.color });
-}
+  const r = s.rank;
+  const above = allStudents.find(x => x.rank === r - 1);
+  const d = DEPTS[s.dept] || { label: s.dept, c: '#4285f4' };
 
-async function openModal(id, info) {
-  const token = ++modalToken;
-  lastFocused = document.activeElement;
-  setModalHeader(info);
-  $('#modalBadgeLabel').textContent = 'Loading verified badges…';
-  $('#modalBadges').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:24px;color:#8792a0;font-size:12px">Fetching badge verification from Google Skills…</div>';
-  $('#studentModal').classList.add('open');
+  $('#modalAvatar').className = 'avatar ' + ac(s);
+  $('#modalAvatar').textContent = initials(s.name);
+  $('#modalStudentName').textContent = s.name;
+  $('#modalSubtitle').textContent = `${d.label} · ${ord(s.year)}`;
+  $('#modalTier').innerHTML = `<span class="tier" style="--tc:${d.c}"><i></i>${escapeHtml(s.dept)}</span>`;
+  $('#modalRank').textContent = '#' + r;
+  $('#modalScore').textContent = fmt(s.score);
+  $('#modalCount').textContent = s.counted_badges || 0;
+
+  const pct = maxScore > 0 ? Math.round((s.score / maxScore) * 100) : 0;
+  const line = above ? `${fmt(above.score - s.score)} points behind ${escapeHtml(above.name)} at #${above.rank}.` : 'Currently leading the campus leaderboard.';
+  $('#modalNext').innerHTML = `
+    <div class="next-t"><span>${r === 1 ? 'Leading the board' : 'Compared with leader'}</span><span>${pct}% of ${fmt(maxScore)} points</span></div>
+    <div class="pbar" style="--tc:${d.c}"><div class="pfill" style="width:${pct}%"></div></div>
+    <p>${line}</p>
+  `;
+
+  const counts = (s.breakdown && s.breakdown.counts_by_category) || {};
+  const sumBadges = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totBadges = sumBadges > 0 ? sumBadges : 1;
+  const mixKeys = Object.keys(MIX_CATEGORIES).filter(k => counts[k] > 0);
+  $('#modalMix').innerHTML = mixKeys.map(k => `<i style="width:${(counts[k] / totBadges) * 100}%;background:${MIX_CATEGORIES[k].c}"></i>`).join('');
+  $('#modalMixL').innerHTML = mixKeys.length ? mixKeys.map(k => `<span style="--c:${MIX_CATEGORIES[k].c}">${counts[k]} ${MIX_CATEGORIES[k].n.toLowerCase()}</span>`).join('') : '<span style="color:var(--mut)">No badges recorded yet</span>';
+
+  $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;font-weight:700">Loading verified badges...</div>`;
+  $('#modal').classList.add('open');
   document.body.style.overflow = 'hidden';
   $('#closeModal').focus();
-  showToast(`Viewing ${orDash(info.name)}'s profile`);
 
   try {
-    let data = memberCache[id];
-    if (!data) {
-      const res = await fetch(`/api/members/${encodeURIComponent(id)}`);
-      if (!res.ok) throw new Error('API returned ' + res.status);
-      data = await res.json();
-      memberCache[id] = data;
-    }
-    if (token !== modalToken) return;
-    const counted = Array.isArray(data.counted_badges) ? data.counted_badges : [];
-    setModalHeader({
-      name: data.name ?? info.name,
-      team: data.team ? data.team.name : info.team,
-      dept: data.department,
-      year: data.year,
-      rank: mode === 'team' ? null : (info.rank ?? data.published_rank),
-      score: info.score ?? data.published_score,
-      counted: counted.length,
-      color: info.color
-    });
-    renderBadges(counted);
+    const res = await fetch(`/api/members/${s.id}`);
+    if (!res.ok) throw new Error('Failed to load member');
+    const data = await res.json();
+    const bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
+    studentBadgesCache[s.id] = bList;
+    $('#modalCount').textContent = bList.length;
+    renderBadges(bList);
   } catch (err) {
-    if (token !== modalToken) return;
-    console.warn('Could not load member detail:', err);
-    $('#modalBadgeLabel').textContent = "Couldn't load badges";
-    const msg = document.createElement('div');
-    msg.style.cssText = 'grid-column:1/-1;text-align:center;padding:20px;color:#6d7785';
-    msg.textContent = "Couldn't load badges, try again later.";
-    $('#modalBadges').replaceChildren(msg);
+    $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;color:var(--r);font-weight:700">Failed to load badges. Please try again.</div>`;
   }
+
+  $('#modalShare').onclick = () => {
+    const txt = `I'm #${r} on the GDG Cloud Campaign 2026 leaderboard with ${fmt(s.score)} points!`;
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+      .then(() => toast('Copied! Share it with your friends.'))
+      .catch(() => toast(txt));
+  };
 }
 
 function closeModal() {
-  modalToken++;
-  $('#studentModal').classList.remove('open');
+  $('#modal').classList.remove('open');
   document.body.style.overflow = '';
-  if (lastFocused && typeof lastFocused.focus === 'function') {
-    lastFocused.focus();
-  }
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
 }
 
-function showToast(msg) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2200);
+function setTab(dept) {
+  $('#tabAll').setAttribute('aria-selected', !dept);
+  $('#tabDept').setAttribute('aria-selected', dept);
+  $('#studentsPane').hidden = dept;
+  $('#deptPane').hidden = !dept;
 }
 
-async function loadStatus() {
-  try {
-    const res = await fetch('/api/leaderboard/status');
-    if (!res.ok) return;
-    const st = await res.json();
-    if (st.active_members) {
-      $('#totalParticipants').textContent = fmt(st.active_members);
-    }
-  } catch (_) {
-    // Keep the count derived from the published entries.
+$('#tabAll').onclick = () => setTab(false);
+$('#tabDept').onclick = () => setTab(true);
+$('#q').addEventListener('input', e => { filters.q = e.target.value; renderStudentRows(); });
+$('#yearSel').addEventListener('change', e => { filters.year = e.target.value; renderStudentRows(); });
+$('#finderInput').addEventListener('input', renderFinder);
+$('#closeModal').onclick = closeModal;
+$('#modal').addEventListener('click', e => { if (e.target === $('#modal')) closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('#modal').classList.contains('open')) closeModal();
+  if (e.key === '/' && !$('#modal').classList.contains('open') && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+    e.preventDefault();
+    setTab(false);
+    $('#q').focus();
   }
-}
+});
 
 async function loadLeaderboard() {
   let data;
   try {
-    const res = await fetch('/api/leaderboard?limit=500');
-    if (!res.ok) throw new Error('API returned ' + res.status);
-    data = await res.json();
+    const resLb = await fetch('/api/leaderboard?limit=50');
+    if (!resLb.ok) throw new Error('API request failed');
+    data = await resLb.json();
   } catch (err) {
-    console.warn('Could not load /api/leaderboard:', err);
-    showMessage("Couldn't load leaderboard, try again later", 'The leaderboard service did not respond.', 'Offline');
+    console.error('Error fetching leaderboard data:', err);
+    $('#syncText').textContent = "Couldn't load leaderboard, try again later";
     return;
   }
 
   const raw = data && Array.isArray(data.entries) ? data.entries : [];
   if (!raw.length) {
-    showMessage('Leaderboard not published yet', 'Rankings will appear here after the first published sync.', 'Not published');
+    $('#syncText').textContent = 'Leaderboard not published yet';
     return;
   }
 
-  setMode(data.mode === 'team' ? 'team' : 'solo');
-  entries = raw.map(mode === 'team' ? toTeam : toStudent);
-  if (mode === 'solo') populateDepartments(entries.map(s => s.dept));
+  if (data.mode === 'team') {
+    currentMode = 'team';
+    allTeams = raw.map(e => ({
+      id: e.id,
+      rank: e.rank,
+      name: e.name,
+      score: Math.round(e.score || 0),
+      counted_badges: e.counted_badges || 0,
+      members: e.members || []
+    }));
+    maxScore = allTeams.length ? Math.max(...allTeams.map(t => t.score), 1) : 1;
+    renderHero(data.published_at);
+    renderPodium();
+    renderTeamRows();
+  } else {
+    currentMode = 'solo';
+    allStudents = raw.map(e => ({
+      id: e.id,
+      rank: e.rank,
+      name: e.name,
+      dept: e.department || 'CSE',
+      year: e.year ? +e.year : 1,
+      score: Math.round(e.score || 0),
+      counted_badges: e.counted_badges || 0,
+      breakdown: e.breakdown || {}
+    }));
 
-  $('#totalParticipants').textContent = fmt(
-    mode === 'team' ? entries.reduce((n, t) => n + t.members.length, 0) : entries.length);
-  $('#totalBadges').textContent = fmt(entries.reduce((n, e) => n + e.counted, 0));
-  $('#totalPoints').textContent = fmt(entries.reduce((n, e) => n + e.score, 0));
+    maxScore = allStudents.length ? Math.max(...allStudents.map(s => s.score), 1) : 1;
+    buildDynamicDepts(allStudents);
 
-  if (data.published_at) {
-    const pubDate = new Date(data.published_at);
-    $('#syncTime').textContent = pubDate.toLocaleTimeString('en-IN', {
-      hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata'
-    });
-    $('#syncDate').textContent = pubDate.toLocaleDateString('en-GB', {
-      day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
-    }) + ' · IST';
+    const topScorers = allStudents.filter(s => s.counted_badges > 0);
+    latestFeedEvents = [];
+    await Promise.all(topScorers.map(async s => {
+      try {
+        const mres = await fetch(`/api/members/${s.id}`);
+        if (mres.ok) {
+          const mdata = await mres.json();
+          const badges = (mdata.counted_badges || []).concat(mdata.uncounted_badges || []);
+          studentBadgesCache[s.id] = badges;
+          badges.forEach(b => {
+            latestFeedEvents.push({
+              name: s.name.split(' ')[0],
+              title: b.title,
+              image: b.image_url,
+              date: b.earned_date ? b.earned_date : 'Verified'
+            });
+          });
+        }
+      } catch (e) {}
+    }));
+
+    renderHero(data.published_at);
+    renderPodium();
+    renderChips();
+    renderStudentRows();
+    renderDepts();
+    renderFeed();
+    renderFinder();
   }
-
-  setSyncState('Live synced', true);
-  setControlsEnabled(true);
-  updateFilters();
-  loadStatus();
 }
 
-// Event Listeners
-$('#searchInput').addEventListener('input', updateFilters);
-$('#departmentFilter').addEventListener('change', updateFilters);
-$('#yearFilter').addEventListener('change', updateFilters);
-$('#closeModal').addEventListener('click', closeModal);
-$('#studentModal').addEventListener('click', e => {
-  if (e.target === $('#studentModal')) closeModal();
-});
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && $('#studentModal').classList.contains('open')) {
-    closeModal();
-  }
-  if (e.key === '/' && !$('#studentModal').classList.contains('open') && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
-    e.preventDefault();
-    $('#searchInput').focus();
-  }
-});
-
-// Initial boot: loading state only, no data until the API answers.
 loadLeaderboard();
 </script>
 </body>
