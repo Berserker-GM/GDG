@@ -196,8 +196,11 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
     def leaderboard(limit: int = Query(50, ge=1, le=500), session: Session = Depends(get_session)):
         run = _latest_published(session)
         if run is None:
-            return {"run_id": None, "published_at": None, "mode": None, "entries": []}
-        return _run_with_standings(run, limit)
+            return {"run_id": None, "published_at": None, "mode": None, "total_participants": 0, "entries": []}
+        total_members = session.scalar(select(func.count()).select_from(Member).where(Member.active.is_(True))) or 0
+        res = _run_with_standings(run, limit)
+        res["total_participants"] = total_members
+        return res
 
     @app.get("/api/leaderboard/history")
     def history(limit: int = Query(30, ge=1, le=365), session: Session = Depends(get_session)):
