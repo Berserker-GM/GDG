@@ -26,7 +26,7 @@ def _env(name: str, default: str) -> str:
 class Settings:
     database_url: str = "sqlite:///data/leaderboard.db"
     leaderboard_mode: str = "auto"
-    leaderboard_size: int = 500
+    leaderboard_size: int = 50
     min_success_ratio: float = 0.6
     max_other_badge_ratio: float = 0.5
     scoring_config: str = "scoring.yaml"
@@ -57,7 +57,7 @@ class Settings:
         return cls(
             database_url=_env("DATABASE_URL", cls.database_url),
             leaderboard_mode=mode,
-            leaderboard_size=int(_env("LEADERBOARD_SIZE", "500")),
+            leaderboard_size=int(_env("LEADERBOARD_SIZE", "50")),
             min_success_ratio=float(_env("MIN_SUCCESS_RATIO", "0.6")),
             max_other_badge_ratio=float(_env("MAX_OTHER_BADGE_RATIO", "0.5")),
             scoring_config=_env("SCORING_CONFIG", cls.scoring_config),

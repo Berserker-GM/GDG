@@ -3,6 +3,10 @@
 venv
 data
 .env
+.env.*
+*.db
+*.sqlite
+*.sqlite3
 *.xlsx
 *.csv
 __pycache__

@@ -15,6 +15,7 @@ from app.config import Settings, get_settings
 from app.db import session_scope, utcnow
 from app.leaderboard import compute_entries, has_supported_link
 from app.models import (
+    FETCH_ERROR,
     OK,
     RUN_FAILED,
     RUN_PUBLISHED,
@@ -150,7 +151,14 @@ async def execute_run(
 
         async def collect(ref: ProfileRef) -> None:
             nonlocal succeeded, badges_seen, other_badges
-            result = await collectors[ref.platform].fetch(ref)
+            try:
+                result = await collectors[ref.platform].fetch(ref)
+            except Exception as exc:
+                # A bug for one profile must not abort the whole run; treat it as a failed fetch.
+                log.exception("Unexpected error fetching member %s", ref.member_id)
+                result = ProfileResult(
+                    status=FETCH_ERROR, url=ref.url, error=f"{type(exc).__name__}: {exc}", fetched_at=utcnow()
+                )
             apply_result(ref.member_id, result)
             if result.ok:
                 succeeded += 1

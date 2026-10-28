@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#4285f4" />
-<title>GDG Cloud Campaign 2026 Leaderboard — BMSIT&M</title>
+<title>GDG Cloud Campaign 2026 Leaderboard — BMSIT&amp;M</title>
 <link rel="icon" type="image/png" href="/static/gdg-logo.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,8 +142,6 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);
 .rk-w{display:flex;align-items:center;gap:8px}
 .rk{width:44px;height:44px;border-radius:50%;border:var(--bd);background:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.03em;flex:none}
 .rk.r1{background:var(--y)}.rk.r2{background:var(--g)}.rk.r3{background:var(--r)}
-.mv{font-size:12px;font-weight:700}
-.mv.up{color:#137333}.mv.down{color:#c5221f}.mv.same{color:#8a93a5}
 .who{display:flex;align-items:center;gap:12px;min-width:0}
 .who .avatar{width:46px;height:46px;border-radius:50%;font-size:15px}
 .who b{display:block;font-weight:700;font-size:16px;line-height:1.25}
@@ -346,33 +344,33 @@ footer img{width:44px}
   </footer>
 </main>
 
-<div class="backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="mName">
+<div class="backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalStudentName">
   <div class="modal">
     <div class="m-head">
-      <button class="m-close" id="mClose" aria-label="Close">×</button>
-      <div class="avatar c0" id="mAv">--</div>
+      <button class="m-close" id="closeModal" aria-label="Close">×</button>
+      <div class="avatar c0" id="modalAvatar"></div>
       <div>
-        <div class="m-name" id="mName">Name</div>
-        <div class="m-sub" id="mSub"></div>
-        <div id="mTier"></div>
+        <div class="m-name" id="modalStudentName"></div>
+        <div class="m-sub" id="modalSubtitle"></div>
+        <div id="modalTier"></div>
       </div>
     </div>
     <div class="m-stats">
-      <div><b id="mRank">#--</b><span>Rank</span></div>
-      <div><b id="mScore">0</b><span>Points</span></div>
-      <div><b id="mCount">0</b><span>Badges shown</span></div>
+      <div><b id="modalRank">--</b><span>Rank</span></div>
+      <div><b id="modalScore">0</b><span>Points</span></div>
+      <div><b id="modalCount">0</b><span>Badges shown</span></div>
     </div>
     <div class="m-body">
-      <div class="next" id="mNext"></div>
+      <div class="next" id="modalNext"></div>
       <h4>Badge mix</h4>
-      <div class="mix" id="mMix"></div>
-      <div class="mix-l" id="mMixL"></div>
+      <div class="mix" id="modalMix"></div>
+      <div class="mix-l" id="modalMixL"></div>
       <h4>Google Cloud badges</h4>
-      <div class="bgrid" id="mBadges"></div>
+      <div class="bgrid" id="modalBadges"></div>
     </div>
     <div class="m-foot">
       <p>Badge verification pulled directly from Google Cloud Skills Boost profiles.</p>
-      <button class="btn" id="mShare">Copy my rank</button>
+      <button class="btn" id="modalShare">Copy my rank</button>
     </div>
   </div>
 </div>
@@ -380,21 +378,22 @@ footer img{width:44px}
 
 <script>
 const LOGO = '/static/gdg-logo.png';
+const DASH = '—';
+const FALLBACK_BADGE_URL = 'https://www.skills.google';
 const CONFIG = {
   college: 'BMS Institute of Technology & Management',
   goalParticipants: 350,
   endDate: '2026-11-20'
 };
 
-// Color palettes for dynamically categorized departments
 const KNOWN_DEPTS = {
-  'CSE': { name: 'Computer Science & Engineering', c: '#4285f4' },
-  'AI&ML': { name: 'Artificial Intelligence & Machine Learning', c: '#ea4335' },
-  'ECE': { name: 'Electronics & Communication', c: '#fbbc04' },
-  'CSBS': { name: 'Computer Science & Business Systems', c: '#34a853' },
-  'EEE': { name: 'Electrical & Electronics', c: '#9c27b0' },
-  'Mechanical': { name: 'Mechanical Engineering', c: '#ff7043' },
-  'ISE': { name: 'Information Science & Engineering', c: '#009688' }
+  'CSE': { label: 'Computer Science', c: '#4285f4' },
+  'AI&ML': { label: 'Artificial Intelligence & Machine Learning', c: '#ea4335' },
+  'ECE': { label: 'Electronics & Communication', c: '#fbbc04' },
+  'CSBS': { label: 'Computer Science & Business Systems', c: '#34a853' },
+  'EEE': { label: 'Electrical & Electronics', c: '#9c27b0' },
+  'Mechanical': { label: 'Mechanical', c: '#ff7043' },
+  'ISE': { label: 'Information Science', c: '#009688' }
 };
 const PALETTE = ['#4285f4', '#ea4335', '#fbbc04', '#34a853', '#9c27b0', '#ff7043', '#009688', '#3f51b5', '#e91e63', '#00bcd4'];
 
@@ -407,6 +406,8 @@ const MIX_CATEGORIES = {
 
 let DEPTS = {};
 let allStudents = [];
+let allTeams = [];
+let currentMode = 'solo';
 let maxScore = 1;
 let filters = { q: '', dept: 'all', year: 'all' };
 let studentBadgesCache = {};
@@ -414,15 +415,39 @@ let latestFeedEvents = [];
 let lastFocus = null, toastT;
 
 const $ = s => document.querySelector(s);
-const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"'`]/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
+  })[ch]);
+}
+
+function safeImageUrl(url) {
+  return typeof url === 'string' && url.startsWith('https://') ? url : null;
+}
+
+function safeBadgeUrl(url) {
+  return typeof url === 'string' && url.startsWith('https://www.skills.google/') ? url : FALLBACK_BADGE_URL;
+}
+
+function rankLabel(rank) {
+  if (rank === null || rank === undefined) return DASH;
+  return rank < 10 ? `0${rank}` : String(rank);
+}
+
+function yearLabel(year) {
+  if (year === null || year === undefined || String(year).trim() === '') return DASH;
+  const y = String(year).trim();
+  if (!/^\d+$/.test(y)) return y;
+  const n = Number(y);
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[n % 10] || 'th';
+  return `${n}${suffix} year`;
+}
+
 const fmt = n => Number(n || 0).toLocaleString('en-IN');
-const ord = n => {
-  const v = Number(n);
-  if (!v) return 'Year ' + n;
-  return v + (v === 1 ? 'st' : v === 2 ? 'nd' : v === 3 ? 'rd' : 'th');
-};
+const ord = yearLabel;
 const initials = name => (name || '').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'ST';
-const ac = s => 'c' + (Math.abs(Number(s.id || 0)) % 4);
+const ac = item => 'c' + (Math.abs(Number(item.id || 0)) % 4);
 
 document.querySelectorAll('[data-logo]').forEach(i => {
   i.src = LOGO;
@@ -439,17 +464,17 @@ function toast(m) {
   toastT = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-function buildDynamicDepts(students) {
+function buildDynamicDepts(items) {
   DEPTS = {};
   let colorIdx = 0;
-  students.forEach(s => {
-    const code = s.dept || 'General';
+  items.forEach(item => {
+    const code = item.dept || 'General';
     if (!DEPTS[code]) {
       if (KNOWN_DEPTS[code]) {
         DEPTS[code] = { ...KNOWN_DEPTS[code] };
       } else {
         DEPTS[code] = {
-          name: code,
+          label: code,
           c: PALETTE[colorIdx % PALETTE.length]
         };
         colorIdx++;
@@ -474,9 +499,9 @@ function countUp(el, to, short) {
 
 function renderHero(publishedAt) {
   $('#collegeName').textContent = CONFIG.college;
-  const nP = allStudents.length;
-  const nB = allStudents.reduce((a, s) => a + (s.counted_badges || 0), 0);
-  const nPt = allStudents.reduce((a, s) => a + (s.score || 0), 0);
+  const nP = currentMode === 'team' ? allTeams.reduce((n, t) => n + t.members.length, 0) : allStudents.length;
+  const nB = (currentMode === 'team' ? allTeams : allStudents).reduce((a, item) => a + (item.counted_badges || 0), 0);
+  const nPt = (currentMode === 'team' ? allTeams : allStudents).reduce((a, item) => a + (item.score || 0), 0);
 
   const box = [];
   if (CONFIG.endDate) {
@@ -504,57 +529,61 @@ function renderHero(publishedAt) {
 }
 
 function renderPodium() {
-  if (allStudents.length < 3) return;
-  const a = allStudents[0], b = allStudents[1], c = allStudents[2];
+  const items = currentMode === 'team' ? allTeams : allStudents;
+  if (items.length < 3) return;
+  const a = items[0], b = items[1], c = items[2];
   const order = [[b, 2], [a, 1], [c, 3]];
-  $('#podium').innerHTML = order.map(([s, r]) => `
-    <button class="pod p${r}" data-id="${s.id}" aria-label="Open ${esc(s.name)}, rank ${r}">
-      <span class="avatar ${ac(s)}">${initials(s.name)}</span>
-      <span class="pod-name">${esc(s.name)}</span>
-      <span class="pod-meta">${esc(s.dept)}, ${ord(s.year)} year</span>
-      <span class="pod-pts">${fmt(s.score)}<small>points</small></span>
-      <span class="thumbs" id="podThumbs-${s.id}"></span>
+  $('#podium').innerHTML = order.map(([item, r]) => `
+    <button class="pod p${r}" data-id="${item.id}" aria-label="Open ${escapeHtml(item.name)}, rank ${r}">
+      <span class="avatar ${ac(item)}">${initials(item.name)}</span>
+      <span class="pod-name">${escapeHtml(item.name)}</span>
+      <span class="pod-meta">${escapeHtml(item.dept)}, ${ord(item.year)}</span>
+      <span class="pod-pts">${fmt(item.score)}<small>points</small></span>
+      <span class="thumbs" id="podThumbs-${item.id}"></span>
       <span class="num-big" aria-hidden="true">${r}</span>
     </button>
   `).join('');
   document.querySelectorAll('.pod').forEach(p => p.onclick = () => openModal(+p.dataset.id));
-  order.forEach(([s]) => renderStudentThumbs(s, `#podThumbs-${s.id}`));
+  order.forEach(([item]) => renderStudentThumbs(item, `#podThumbs-${item.id}`));
 }
 
 function renderChips() {
   const deptsKeys = Object.keys(DEPTS);
   const opts = [['all', 'All']].concat(deptsKeys.map(k => [k, k]));
   $('#chips').innerHTML = opts.map(([k, l]) => `
-    <button class="chip" data-d="${k}" aria-pressed="${filters.dept === k}" ${k !== 'all' ? `title="${esc(DEPTS[k].name)}"` : ''}>${l}</button>
+    <button class="chip" data-d="${k}" aria-pressed="${filters.dept === k}" ${k !== 'all' ? `title="${escapeHtml(DEPTS[k].label)}"` : ''}>${l}</button>
   `).join('');
   document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
     filters.dept = c.dataset.d;
     renderChips();
-    renderList();
+    if (currentMode === 'team') {
+      renderTeamRows();
+    } else {
+      renderStudentRows();
+    }
   });
 }
 
-function renderStudentThumbs(s, targetSelector) {
+function renderStudentThumbs(item, targetSelector) {
   const el = $(targetSelector);
   if (!el) return;
-  if (studentBadgesCache[s.id]) {
-    const list = studentBadgesCache[s.id].slice(0, 3);
+  if (studentBadgesCache[item.id]) {
+    const list = studentBadgesCache[item.id].slice(0, 3);
     if (!list.length) { el.innerHTML = ''; return; }
-    el.innerHTML = list.map(b => `<img src="${esc(b.image_url)}" alt="${esc(b.title)}" title="${esc(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
-  } else if (s.counted_badges > 0) {
-    // Fetch in background for students with badges
-    fetch(`/api/members/${s.id}`).then(r => r.json()).then(data => {
+    el.innerHTML = list.map(b => `<img src="${safeImageUrl(b.image_url)}" alt="${escapeHtml(b.title)}" title="${escapeHtml(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
+  } else if (item.counted_badges > 0) {
+    fetch(`/api/members/${item.id}`).then(r => r.json()).then(data => {
       const bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
-      studentBadgesCache[s.id] = bList;
+      studentBadgesCache[item.id] = bList;
       const list = bList.slice(0, 3);
       if (list.length) {
-        el.innerHTML = list.map(b => `<img src="${esc(b.image_url)}" alt="${esc(b.title)}" title="${esc(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
+        el.innerHTML = list.map(b => `<img src="${safeImageUrl(b.image_url)}" alt="${escapeHtml(b.title)}" title="${escapeHtml(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
       }
     }).catch(() => {});
   }
 }
 
-function renderList() {
+function renderStudentRows() {
   const q = filters.q.trim().toLowerCase();
   const rows = allStudents.filter(s => {
     const matchQ = !q || s.name.toLowerCase().includes(q) || s.dept.toLowerCase().includes(q);
@@ -572,17 +601,18 @@ function renderList() {
   $('#list').innerHTML = rows.map(s => {
     const d = DEPTS[s.dept] || { c: '#4285f4', name: s.dept };
     const r = s.rank;
+    const rk = rankLabel(s.rank);
     const pct = maxScore > 0 ? (s.score / maxScore * 100) : 0;
     return `
-      <button class="row" data-id="${s.id}" aria-label="Open ${esc(s.name)}">
-        <span class="rk-w"><span class="rk ${r <= 3 ? 'r' + r : ''}">${r}</span></span>
+      <button class="row" data-id="${s.id}" aria-label="Open ${escapeHtml(s.name)}">
+        <span class="rk-w"><span class="rk ${r <= 3 ? 'r' + r : ''}">${rk}</span></span>
         <span class="who">
           <span class="avatar ${ac(s)}">${initials(s.name)}</span>
-          <span><b>${esc(s.name)}</b><small>${esc(s.dept)} · Year ${s.year}</small></span>
+          <span><b>${escapeHtml(s.name)}</b><small>${escapeHtml(s.dept)} · ${ord(s.year)}</small></span>
         </span>
         <span class="dpt" style="--dc:${d.c}">
-          <span><i></i>${esc(s.dept)}</span>
-          <small>${ord(s.year)} year</small>
+          <span><i></i>${escapeHtml(s.dept)}</span>
+          <small>${ord(s.year)}</small>
         </span>
         <span class="thumbs" id="rowThumbs-${s.id}"></span>
         <span class="sc" style="--tc:${d.c}">
@@ -597,6 +627,44 @@ function renderList() {
   rows.forEach(s => {
     if (s.counted_badges > 0) renderStudentThumbs(s, `#rowThumbs-${s.id}`);
   });
+}
+
+function renderTeamRows() {
+  const q = filters.q.trim().toLowerCase();
+  const rows = allTeams.filter(t => {
+    const matchQ = !q || t.name.toLowerCase().includes(q);
+    return matchQ;
+  });
+
+  $('#count').textContent = rows.length === 1 ? '1 team' : rows.length + ' teams';
+  if (!rows.length) {
+    $('#list').innerHTML = `<div class="box empty"><b>No teams found</b>Try another search.</div>`;
+    return;
+  }
+
+  $('#list').innerHTML = rows.map(t => {
+    const r = t.rank;
+    const rk = rankLabel(t.rank);
+    const pct = maxScore > 0 ? (t.score / maxScore * 100) : 0;
+    return `
+      <button class="row" data-id="${t.id}" aria-label="Open ${escapeHtml(t.name)}">
+        <span class="rk-w"><span class="rk ${r <= 3 ? 'r' + r : ''}">${rk}</span></span>
+        <span class="who">
+          <span class="avatar ${ac(t)}">${initials(t.name)}</span>
+          <span><b>${escapeHtml(t.name)}</b><small>${t.members.length} members</small></span>
+        </span>
+        <span class="dpt" style="--dc:#4285f4">
+          <span><i></i>Team</span>
+          <small>${t.members.length} members</small>
+        </span>
+        <span class="thumbs"></span>
+        <span class="sc" style="--tc:#4285f4">
+          <b>${fmt(t.score)}</b><small>pts</small>
+          <div class="meter"><i style="width:${pct}%"></i></div>
+        </span>
+      </button>
+    `;
+  }).join('');
 }
 
 function deptStats() {
@@ -614,12 +682,12 @@ function deptStats() {
 function deptHTML(list, detail) {
   const mx = list.length && list[0].pts > 0 ? list[0].pts : 1;
   return list.map(d => {
-    const conf = DEPTS[d.k] || { name: d.k, c: '#4285f4' };
+    const conf = DEPTS[d.k] || { label: d.k, c: '#4285f4' };
     const pct = (d.pts / mx) * 100;
     const avg = d.n > 0 ? (d.pts / d.n).toFixed(1).replace(/\.0$/, '') : 0;
     return `
       <div class="dep" style="--dc:${conf.c}">
-        <div class="dep-t"><span>${esc(detail ? conf.name : d.k)}</span><span>${fmt(d.pts)} pts</span></div>
+        <div class="dep-t"><span>${escapeHtml(detail ? conf.label : d.k)}</span><span>${fmt(d.pts)} pts</span></div>
         <div class="meter"><i style="width:${pct}%"></i></div>
         ${detail ? `<small>${d.n} on the board · ${d.badges} badges earned · ${avg} average points</small>` : ''}
       </div>
@@ -640,8 +708,8 @@ function renderFeed() {
   }
   $('#feed').innerHTML = latestFeedEvents.slice(0, 5).map(e => `
     <li>
-      <span class="thumb"><img src="${esc(e.image)}" alt="" loading="lazy" onerror="this.outerHTML='GC'"></span>
-      <span><b>${esc(e.name)}</b> finished ${esc(e.title)}<small>${esc(e.date)}</small></span>
+      <span class="thumb"><img src="${safeImageUrl(e.image)}" alt="" loading="lazy" onerror="this.outerHTML='GC'"></span>
+      <span><b>${escapeHtml(e.name)}</b> finished ${escapeHtml(e.title)}<small>${escapeHtml(e.date)}</small></span>
     </li>
   `).join('');
 }
@@ -649,28 +717,45 @@ function renderFeed() {
 function renderFinder() {
   const raw = $('#finderInput').value.trim(), v = raw.toLowerCase(), box = $('#finderResult');
   if (!v) {
-    const demoStudent = allStudents[0] || { name: 'Manya' };
-    box.innerHTML = `<div class="fr-hint">Your rank, your points, and the gap to the next person show up here. Try <button type="button" id="tryDemo">${esc(demoStudent.name)}</button></div>`;
+    const demoName = allStudents.length ? allStudents[0].name : '';
+    box.innerHTML = `<div class="fr-hint">Your rank, your points, and the gap to the next person show up here.${demoName ? ` Try <button type="button" id="tryDemo">${escapeHtml(demoName)}</button>` : ''}</div>`;
     const b = $('#tryDemo');
-    if (b) b.onclick = () => { $('#finderInput').value = demoStudent.name; renderFinder(); };
+    if (b) b.onclick = () => { $('#finderInput').value = demoName; renderFinder(); };
     return;
   }
   const s = allStudents.find(x => x.name.toLowerCase() === v) || allStudents.find(x => x.name.toLowerCase().includes(v));
   if (!s) {
-    box.innerHTML = `<div class="fr-hint">No student matching “${esc(raw)}”. Check the spelling or search your first name.</div>`;
+    box.innerHTML = `<div class="fr-hint">No student matching “${escapeHtml(raw)}”. Check the spelling or search your first name.</div>`;
     return;
   }
   const r = s.rank;
   const above = allStudents.find(x => x.rank === r - 1);
-  const gap = above ? `${fmt(above.score - s.score)} points behind ${esc(above.name)}` : 'Currently in first place!';
+  const gap = above ? `${fmt(above.score - s.score)} points behind ${escapeHtml(above.name)}` : 'Currently in first place!';
   box.innerHTML = `
     <button class="fr-card" data-id="${s.id}">
       <span class="fr-rank">#${r}</span>
-      <span><div class="fr-name">${esc(s.name)}</div><div class="fr-gap">${gap}</div></span>
+      <span><div class="fr-name">${escapeHtml(s.name)}</div><div class="fr-gap">${gap}</div></span>
       <span class="fr-pts"><b>${fmt(s.score)}</b>points</span>
     </button>
   `;
   box.querySelector('.fr-card').onclick = () => openModal(s.id);
+}
+
+function renderBadges(bList) {
+  if (!bList.length) {
+    $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;padding:30px 14px;border:2.5px dashed var(--k);border-radius:18px;text-align:center"><b>No Google Cloud badges completed yet.</b><small style="display:block;margin-top:6px;color:var(--mut)">Complete skill labs on Google Cloud Skills Boost to climb the leaderboard.</small></div>`;
+  } else {
+    $('#modalBadges').innerHTML = bList.map(b => `
+      <a class="bcard" href="${safeBadgeUrl(b.badge_url)}" target="_blank" rel="noopener noreferrer">
+        <span class="bimg"><img src="${safeImageUrl(b.image_url)}" alt="" loading="lazy" onerror="this.outerHTML='<b style=&quot;font-size:12px&quot;>Badge</b>'"></span>
+        <span>
+          <b>${escapeHtml(b.title)}</b>
+          <small>${escapeHtml(b.category || 'Skill Badge')}${b.level ? ` · ${escapeHtml(b.level)}` : ''}</small>
+          <em>Finished ${b.earned_date ? escapeHtml(b.earned_date) : 'Verified'}</em>
+        </span>
+      </a>
+    `).join('');
+  }
 }
 
 async function openModal(id) {
@@ -680,37 +765,36 @@ async function openModal(id) {
 
   const r = s.rank;
   const above = allStudents.find(x => x.rank === r - 1);
-  const d = DEPTS[s.dept] || { name: s.dept, c: '#4285f4' };
+  const d = DEPTS[s.dept] || { label: s.dept, c: '#4285f4' };
 
-  $('#mAv').className = 'avatar ' + ac(s);
-  $('#mAv').textContent = initials(s.name);
-  $('#mName').textContent = s.name;
-  $('#mSub').textContent = `${d.name} · ${ord(s.year)} year`;
-  $('#mTier').innerHTML = `<span class="tier" style="--tc:${d.c}"><i></i>${esc(s.dept)}</span>`;
-  $('#mRank').textContent = '#' + r;
-  $('#mScore').textContent = fmt(s.score);
-  $('#mCount').textContent = s.counted_badges || 0;
+  $('#modalAvatar').className = 'avatar ' + ac(s);
+  $('#modalAvatar').textContent = initials(s.name);
+  $('#modalStudentName').textContent = s.name;
+  $('#modalSubtitle').textContent = `${d.label} · ${ord(s.year)}`;
+  $('#modalTier').innerHTML = `<span class="tier" style="--tc:${d.c}"><i></i>${escapeHtml(s.dept)}</span>`;
+  $('#modalRank').textContent = '#' + r;
+  $('#modalScore').textContent = fmt(s.score);
+  $('#modalCount').textContent = s.counted_badges || 0;
 
   const pct = maxScore > 0 ? Math.round((s.score / maxScore) * 100) : 0;
-  const line = above ? `${fmt(above.score - s.score)} points behind ${esc(above.name)} at #${above.rank}.` : 'Currently leading the campus leaderboard.';
-  $('#mNext').innerHTML = `
+  const line = above ? `${fmt(above.score - s.score)} points behind ${escapeHtml(above.name)} at #${above.rank}.` : 'Currently leading the campus leaderboard.';
+  $('#modalNext').innerHTML = `
     <div class="next-t"><span>${r === 1 ? 'Leading the board' : 'Compared with leader'}</span><span>${pct}% of ${fmt(maxScore)} points</span></div>
     <div class="pbar" style="--tc:${d.c}"><div class="pfill" style="width:${pct}%"></div></div>
     <p>${line}</p>
   `;
 
-  // Render mix bar
   const counts = (s.breakdown && s.breakdown.counts_by_category) || {};
-  const totBadges = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
+  const sumBadges = Object.values(counts).reduce((a, b) => a + b, 0);
+  const totBadges = sumBadges > 0 ? sumBadges : 1;
   const mixKeys = Object.keys(MIX_CATEGORIES).filter(k => counts[k] > 0);
-  $('#mMix').innerHTML = mixKeys.map(k => `<i style="width:${(counts[k] / totBadges) * 100}%;background:${MIX_CATEGORIES[k].c}"></i>`).join('');
-  $('#mMixL').innerHTML = mixKeys.length ? mixKeys.map(k => `<span style="--c:${MIX_CATEGORIES[k].c}">${counts[k]} ${MIX_CATEGORIES[k].n.toLowerCase()}</span>`).join('') : '<span style="color:var(--mut)">No badges recorded yet</span>';
+  $('#modalMix').innerHTML = mixKeys.map(k => `<i style="width:${(counts[k] / totBadges) * 100}%;background:${MIX_CATEGORIES[k].c}"></i>`).join('');
+  $('#modalMixL').innerHTML = mixKeys.length ? mixKeys.map(k => `<span style="--c:${MIX_CATEGORIES[k].c}">${counts[k]} ${MIX_CATEGORIES[k].n.toLowerCase()}</span>`).join('') : '<span style="color:var(--mut)">No badges recorded yet</span>';
 
-  // Badges grid
-  $('#mBadges').innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;font-weight:700">Loading verified badges...</div>`;
+  $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;padding:20px;text-align:center;font-weight:700">Loading verified badges...</div>`;
   $('#modal').classList.add('open');
   document.body.style.overflow = 'hidden';
-  $('#mClose').focus();
+  $('#closeModal').focus();
 
   try {
     const res = await fetch(`/api/members/${s.id}`);
@@ -718,27 +802,13 @@ async function openModal(id) {
     const data = await res.json();
     const bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
     studentBadgesCache[s.id] = bList;
-    $('#mCount').textContent = bList.length;
-
-    if (!bList.length) {
-      $('#mBadges').innerHTML = `<div style="grid-column:1/-1;padding:30px 14px;border:2.5px dashed var(--k);border-radius:18px;text-align:center"><b>No Google Cloud badges completed yet.</b><small style="display:block;margin-top:6px;color:var(--mut)">Complete skill labs on Google Cloud Skills Boost to climb the leaderboard.</small></div>`;
-    } else {
-      $('#mBadges').innerHTML = bList.map(b => `
-        <a class="bcard" href="${esc(b.badge_url)}" target="_blank" rel="noopener noreferrer">
-          <span class="bimg"><img src="${esc(b.image_url)}" alt="" loading="lazy" onerror="this.outerHTML='<b style=&quot;font-size:12px&quot;>Badge</b>'"></span>
-          <span>
-            <b>${esc(b.title)}</b>
-            <small>${esc(b.category || 'Skill Badge')}${b.level ? ` · ${esc(b.level)}` : ''}</small>
-            <em>Finished ${b.earned_date ? b.earned_date : 'Verified'}</em>
-          </span>
-        </a>
-      `).join('');
-    }
+    $('#modalCount').textContent = bList.length;
+    renderBadges(bList);
   } catch (err) {
-    $('#mBadges').innerHTML = `<div style="grid-column:1/-1;color:var(--r);font-weight:700">Failed to load badges. Please try again.</div>`;
+    $('#modalBadges').innerHTML = `<div style="grid-column:1/-1;color:var(--r);font-weight:700">Failed to load badges. Please try again.</div>`;
   }
 
-  $('#mShare').onclick = () => {
+  $('#modalShare').onclick = () => {
     const txt = `I'm #${r} on the GDG Cloud Campaign 2026 leaderboard with ${fmt(s.score)} points!`;
     (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
       .then(() => toast('Copied! Share it with your friends.'))
@@ -761,10 +831,10 @@ function setTab(dept) {
 
 $('#tabAll').onclick = () => setTab(false);
 $('#tabDept').onclick = () => setTab(true);
-$('#q').addEventListener('input', e => { filters.q = e.target.value; renderList(); });
-$('#yearSel').addEventListener('change', e => { filters.year = e.target.value; renderList(); });
+$('#q').addEventListener('input', e => { filters.q = e.target.value; renderStudentRows(); });
+$('#yearSel').addEventListener('change', e => { filters.year = e.target.value; renderStudentRows(); });
 $('#finderInput').addEventListener('input', renderFinder);
-$('#mClose').onclick = closeModal;
+$('#closeModal').onclick = closeModal;
 $('#modal').addEventListener('click', e => { if (e.target === $('#modal')) closeModal(); });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('#modal').classList.contains('open')) closeModal();
@@ -775,18 +845,41 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Load live verified database
 async function loadLeaderboard() {
+  let data;
   try {
-    const [resLb, resStatus] = await Promise.all([
-      fetch('/api/leaderboard?limit=500'),
-      fetch('/api/leaderboard/status')
-    ]);
+    const resLb = await fetch('/api/leaderboard?limit=50');
     if (!resLb.ok) throw new Error('API request failed');
-    const lbData = await resLb.json();
-    const statusData = resStatus.ok ? await resStatus.json() : null;
+    data = await resLb.json();
+  } catch (err) {
+    console.error('Error fetching leaderboard data:', err);
+    $('#syncText').textContent = "Couldn't load leaderboard, try again later";
+    return;
+  }
 
-    allStudents = (lbData.entries || []).map(e => ({
+  const raw = data && Array.isArray(data.entries) ? data.entries : [];
+  if (!raw.length) {
+    $('#syncText').textContent = 'Leaderboard not published yet';
+    return;
+  }
+
+  if (data.mode === 'team') {
+    currentMode = 'team';
+    allTeams = raw.map(e => ({
+      id: e.id,
+      rank: e.rank,
+      name: e.name,
+      score: Math.round(e.score || 0),
+      counted_badges: e.counted_badges || 0,
+      members: e.members || []
+    }));
+    maxScore = allTeams.length ? Math.max(...allTeams.map(t => t.score), 1) : 1;
+    renderHero(data.published_at);
+    renderPodium();
+    renderTeamRows();
+  } else {
+    currentMode = 'solo';
+    allStudents = raw.map(e => ({
       id: e.id,
       rank: e.rank,
       name: e.name,
@@ -800,7 +893,6 @@ async function loadLeaderboard() {
     maxScore = allStudents.length ? Math.max(...allStudents.map(s => s.score), 1) : 1;
     buildDynamicDepts(allStudents);
 
-    // Initial feed fetch from members with badges
     const topScorers = allStudents.filter(s => s.counted_badges > 0);
     latestFeedEvents = [];
     await Promise.all(topScorers.map(async s => {
@@ -822,16 +914,13 @@ async function loadLeaderboard() {
       } catch (e) {}
     }));
 
-    renderHero(lbData.published_at);
+    renderHero(data.published_at);
     renderPodium();
     renderChips();
-    renderList();
+    renderStudentRows();
     renderDepts();
     renderFeed();
     renderFinder();
-  } catch (err) {
-    console.error('Error fetching leaderboard data:', err);
-    $('#syncText').textContent = 'Unable to reach backend';
   }
 }
 

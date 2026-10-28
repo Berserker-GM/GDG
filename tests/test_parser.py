@@ -6,7 +6,7 @@ import pytest
 from app.collectors.skills_parser import ParseError, classify, parse_earned_date, parse_profile
 from tests.helpers import read_fixture
 
-URL = "https://www.skills.google/public_profiles/92edbe64-5685-4127-a4d6-24202fa95d29"
+URL = "https://www.skills.google/public_profiles/00000000-0000-4000-8000-000000000001"
 
 
 @pytest.fixture(scope="module")
@@ -16,7 +16,7 @@ def multi():
 
 def test_profile_fields(multi):
     assert multi.status == "ok"
-    assert multi.display_name == "Suyash Barnawal"
+    assert multi.display_name == "Sample Learner"
     assert multi.member_since == 2025
     assert multi.league == "Silver League"
     assert multi.platform_points == 2220

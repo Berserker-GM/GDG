@@ -7,9 +7,11 @@ A small Python service that:
 3. scores students, or teams, on their badges using rules in `scoring.yaml`, and
 4. serves the top 50 over a REST API.
 
-Stack: FastAPI, SQLAlchemy 2 (SQLite by default, MySQL via `DATABASE_URL`), httpx, BeautifulSoup + lxml, APScheduler, openpyxl, PyYAML and pytest.
+Stack: FastAPI, SQLAlchemy 2 (SQLite by default, Postgres or MySQL via `DATABASE_URL`), httpx, BeautifulSoup + lxml, APScheduler, openpyxl, PyYAML and pytest.
 
-> **Student data must never be committed.** `.gitignore` excludes `data/`, `.env`, `*.xlsx` and `*.csv`.
+> **Student data must never be committed.** `.gitignore` excludes `data/`, `.env`, `*.xlsx`, `*.csv` and `*.db`.
+
+> **Running the live site?** Follow the step-by-step [operations runbook](docs/RUNBOOK.md): deploying to Render + Supabase, environment variables, the daily refresh, routine tasks, troubleshooting, backups and the pre-launch checklist.
 
 ---
 
@@ -18,7 +20,7 @@ Stack: FastAPI, SQLAlchemy 2 (SQLite by default, MySQL via `DATABASE_URL`), http
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt   # server deps + pytest; the Docker image only needs requirements.txt
 cp .env.example .env             # then edit ADMIN_TOKEN, CONTACT_EMAIL, ...
 pytest                           # network is fully mocked
 ```
@@ -53,6 +55,24 @@ python scripts/generate_sample_form.py data/sample_form.xlsx --teams data/sample
 python -m app.cli import data/sample_form.xlsx
 python scripts/mock_refresh.py      # refresh against a mocked site, then prints /api/leaderboard
 ```
+
+### Helper scripts for a running server
+
+Both talk to the HTTP API only and need `pip install -r requirements-dev.txt` (for `requests`). Nothing is hardcoded: pass options or set the environment variables.
+
+```bash
+# import the form if the DB is empty, trigger a refresh, wait for it, print the board
+python scripts/run_pipeline.py --base-url http://localhost:8000 --admin-token "$ADMIN_TOKEN" --xlsx path/to/form.xlsx
+
+# just watch the current run
+python scripts/monitor_run.py --base-url http://localhost:8000
+```
+
+| Option | Env var | Used by |
+|---|---|---|
+| `--base-url` | `BASE_URL` (default `http://localhost:8000`) | both |
+| `--admin-token` | `ADMIN_TOKEN` (required) | `run_pipeline.py` |
+| `--xlsx` | `FORM_XLSX` (only needed when the DB is empty) | `run_pipeline.py` |
 
 ## What the importer does
 
@@ -170,7 +190,7 @@ Interactive docs are at `/docs`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db` |
+| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db`. Postgres: `postgresql://…?sslmode=require` (`postgres://` is rewritten automatically). On Postgres the tables get Row Level Security with no policies, so the role in `DATABASE_URL` must own them |
 | `LEADERBOARD_MODE` | `auto` | `auto`, `team` or `solo` |
 | `LEADERBOARD_SIZE` | `50` | Standings stored per run |
 | `MIN_SUCCESS_RATIO` | `0.6` | Minimum successful/attempted fetches to publish |
@@ -185,7 +205,7 @@ Interactive docs are at `/docs`.
 | `FETCH_MAX_RETRIES` | `3` | Retries after the first attempt |
 | `FETCH_BACKOFF_BASE` | `2.0` | Backoff base seconds (`base·2^n + jitter`) |
 | `ADMIN_TOKEN` | *(empty: admin disabled)* | Shared secret for admin endpoints |
-| `CORS_ORIGINS` | *(empty)* | Comma-separated allowed origins |
+| `CORS_ORIGINS` | *(empty)* | Comma-separated allowed origins. Leave empty when the frontend is served by this app at `/` |
 | `ENABLE_SCHEDULER` | `true` | Run the daily job in this process |
 | `REFRESH_CRON` | `0 2 * * *` | Crontab for the refresh |
 | `TIMEZONE` | `Asia/Kolkata` | Timezone of the cron expression |
@@ -233,25 +253,9 @@ curl -fsS -X POST -H "X-Admin-Token: $ADMIN_TOKEN" https://your-app.example.com/
 ```
 
 - **cron-job.org:** create a daily job with method `POST`, that URL, and an `X-Admin-Token` header.
-- **GitHub Actions:** store the token as the repository secret `ADMIN_TOKEN`:
+- **GitHub Actions:** [`.github/workflows/daily-refresh.yml`](.github/workflows/daily-refresh.yml) does the same with the repository secrets `APP_URL` and `ADMIN_TOKEN`. It ships disabled (manual `workflow_dispatch` only); uncomment its `schedule` line (`30 20 * * *` = 02:00 IST) to turn it on. See [docs/RUNBOOK.md](docs/RUNBOOK.md#6-daily-refresh).
 
-  ```yaml
-  # .github/workflows/refresh.yml
-  name: Daily leaderboard refresh
-  on:
-    schedule: [{cron: "30 20 * * *"}]   # 20:30 UTC = 02:00 IST
-    workflow_dispatch:
-  jobs:
-    refresh:
-      runs-on: ubuntu-latest
-      steps:
-        - run: >
-            curl -fsS --retry 3 --retry-delay 30 -X POST
-            -H "X-Admin-Token: ${{ secrets.ADMIN_TOKEN }}"
-            https://your-app.example.com/api/admin/refresh
-  ```
-
-A cold start can take a while, which is why the workflow uses `--retry`. A `409` means a run is already in progress, which is fine. The refresh itself runs in the background after the `202`, so the host must stay awake for a few minutes. Most hosts keep a service up for at least 15 minutes after a request.
+A cold start can take a while, which is why the workflow first wakes `/health` and uses `--retry`. A `409` means a run is already in progress, which is fine. The refresh itself runs in the background after the `202`, so the host must stay awake for a few minutes. Most hosts keep a service up for at least 15 minutes after a request.
 
 ## Backups
 
@@ -274,7 +278,8 @@ app/
   pipeline.py        lock → collect → score → validate → publish
   scheduler.py       APScheduler daily job
   api.py, cli.py     FastAPI app and CLI
-scripts/             synthetic sample data + offline mock refresh
+scripts/             synthetic sample data, offline mock refresh, run_pipeline/monitor_run helpers
+frontend/            static leaderboard page served at /
 tests/               pytest suite (network mocked)
 ```
 

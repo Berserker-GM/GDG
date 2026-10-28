@@ -27,10 +27,22 @@ _engine: Engine | None = None
 _SessionLocal: sessionmaker[Session] | None = None
 
 
+def normalize_database_url(database_url: str) -> str:
+    """Pin plain Postgres URLs to psycopg2, the driver in requirements.txt.
+
+    Heroku/Render-style ``postgres://`` is rejected by SQLAlchemy 2, and since SQLAlchemy 2.1 a bare
+    ``postgresql://`` defaults to psycopg 3, which is not installed. An explicit driver is kept.
+    """
+    for prefix in ("postgres://", "postgresql://"):
+        if database_url.startswith(prefix):
+            return "postgresql+psycopg2://" + database_url[len(prefix):]
+    return database_url
+
+
 def configure(database_url: str | None = None) -> Engine:
     """(Re)create the engine. Called lazily, and by tests to point at a temp database."""
     global _engine, _SessionLocal
-    url = make_url(database_url or get_settings().database_url)
+    url = make_url(normalize_database_url(database_url or get_settings().database_url))
     kwargs: dict = {"pool_pre_ping": True, "future": True}
     if url.get_backend_name() == "sqlite":
         kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
@@ -58,9 +70,19 @@ def init_db() -> None:
     engine = get_engine()
     Base.metadata.create_all(engine)
     if engine.url.get_backend_name() == "postgresql":
+        # Only touch tables that still need it: ALTER TABLE requires ownership, so running it on
+        # every startup would crash a deploy whose role can use, but does not own, the tables.
+        tables = [t.name for t in Base.metadata.sorted_tables]
         with engine.connect() as conn:
-            for table in ("teams", "members", "badges", "runs", "standings"):
-                conn.execute(text(f"ALTER TABLE public.{table} ENABLE ROW LEVEL SECURITY;"))
+            pending = conn.execute(
+                text(
+                    "SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                    "WHERE n.nspname = 'public' AND c.relname = ANY(:tables) AND NOT c.relrowsecurity"
+                ),
+                {"tables": tables},
+            ).scalars().all()
+            for table in pending:
+                conn.execute(text(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY'))
             conn.commit()
 
 

@@ -1,0 +1,6 @@
+-r requirements.txt
+# Test suite
+pytest>=8.0
+pytest-asyncio>=0.23
+# Extra packages for the helper scripts in scripts/ (not needed by the server).
+requests>=2.31
