@@ -174,7 +174,7 @@ async def execute_run(
 
         with session_scope() as session:
             mode, entries = compute_entries(session, cfg, settings.leaderboard_mode)
-            ranked = rank_entries(entries)[: settings.leaderboard_size]
+            ranked = rank_entries(entries, cfg)[: settings.leaderboard_size]
             run = session.get(Run, run_id)
             run.mode = mode
             run.attempted = attempted
