@@ -11,8 +11,11 @@ name: Daily leaderboard refresh
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: "30 20 * * *"   # 20:30 UTC = 02:00 Asia/Kolkata (GitHub cron is always UTC)
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "30 20 * * *"   # 20:30 UTC = 02:00 Asia/Kolkata (GitHub cron is always UTC)
 
 permissions: {}
 

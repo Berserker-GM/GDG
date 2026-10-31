@@ -38,6 +38,7 @@ def _as_date(value: Any) -> date | None:
 class ScoringConfig:
     program_start: date | None = None
     program_end: date | None = None
+    target_badges: int | None = None
     points: dict[str, int] = field(
         default_factory=lambda: {"skill_badge": 10, "course_badge": 3, "game_badge": 5, "other": 0}
     )
@@ -56,9 +57,11 @@ class ScoringConfig:
         if aggregation not in {"sum", "average"}:
             raise ValueError("team_aggregation must be 'sum' or 'average'")
         cap = data.get("max_points_per_member")
+        target = data.get("target_badges")
         return cls(
             program_start=_as_date(data.get("program_start")),
             program_end=_as_date(data.get("program_end")),
+            target_badges=int(target) if target not in (None, "") else None,
             points=points,
             count_deprecated=bool(data.get("count_deprecated", True)),
             badge_overrides={str(k): int(v) for k, v in (data.get("badge_overrides") or {}).items()},
@@ -79,6 +82,7 @@ class ScoringConfig:
         return {
             "program_start": self.program_start.isoformat() if self.program_start else None,
             "program_end": self.program_end.isoformat() if self.program_end else None,
+            "target_badges": self.target_badges,
             "points": dict(sorted(self.points.items())),
             "count_deprecated": self.count_deprecated,
             "badge_overrides": dict(sorted(self.badge_overrides.items())),
@@ -278,5 +282,45 @@ def rank_key(entry: Entry) -> tuple:
     return (-entry.score, -entry.skill_badges, entry.reached_at or date.max, entry.name.lower(), entry.entity_id)
 
 
-def rank_entries(entries: Iterable[Entry]) -> list[tuple[int, Entry]]:
-    return [(i, e) for i, e in enumerate(sorted(entries, key=rank_key), start=1)]
+def rank_entries(entries: Iterable[Entry], cfg: ScoringConfig | None = None) -> list[tuple[int, Entry]]:
+    """Rank entries according to the campaign rules:
+    - Participants who completed all badges (either reaching cfg.target_badges, or the highest
+      score group if cfg.target_badges is not set):
+      - The first participant to complete all badges (earliest reached_at) is placed on top.
+      - After that, all other participants who completed are ranked in alphabetical order by name.
+    - All remaining participants are ranked below by score desc, skill badges desc, and name alphabetically.
+    """
+    entries_list = list(entries)
+    if not entries_list:
+        return []
+
+    target = cfg.target_badges if cfg else None
+    if target is not None:
+        completed = [e for e in entries_list if e.counted_badges >= target and e.score > 0]
+    else:
+        max_score = max((e.score for e in entries_list), default=0)
+        completed = [e for e in entries_list if e.score == max_score and max_score > 0]
+
+    if completed:
+        first_winner = min(
+            completed,
+            key=lambda e: (e.reached_at or date.max, -e.skill_badges, e.name.lower(), e.entity_id),
+        )
+        other_completed = sorted(
+            [e for e in completed if (e.entity_id != first_winner.entity_id or e.name != first_winner.name)],
+            key=lambda e: (e.name.lower(), e.entity_id),
+        )
+        completed_ranked = [first_winner] + other_completed
+        completed_keys = {(e.entity_type, e.entity_id) for e in completed}
+        remaining = [e for e in entries_list if (e.entity_type, e.entity_id) not in completed_keys]
+    else:
+        completed_ranked = []
+        remaining = entries_list
+
+    remaining_ranked = sorted(
+        remaining,
+        key=lambda e: (-e.score, -e.skill_badges, e.name.lower(), e.entity_id),
+    )
+
+    final_list = completed_ranked + remaining_ranked
+    return [(i, e) for i, e in enumerate(final_list, start=1)]

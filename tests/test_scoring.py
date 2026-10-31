@@ -114,6 +114,50 @@ def test_tiebreak_name():
     assert [r for r, _ in ranked] == [1, 2]
 
 
+def test_first_to_complete_on_top_then_alphabetical():
+    # Winner: 'Zed' completed first on Sep 1
+    # Subsequent finishers: 'Bob' completed on Sep 5, 'Alice' completed on Sep 10
+    # Expected ranking:
+    # 1: Zed (first to complete on top)
+    # 2: Alice (after that, whoever completes is sorted alphabetically)
+    # 3: Bob
+    # 4: Charlie (lower score, ranked below completers)
+    zed = _entry("Zed", 30, 3, date(2026, 9, 1))
+    bob = _entry("Bob", 30, 3, date(2026, 9, 5))
+    alice = _entry("Alice", 30, 3, date(2026, 9, 10))
+    charlie = _entry("Charlie", 20, 2, date(2026, 9, 1))
+
+    ranked = rank_entries([bob, charlie, zed, alice])
+    names = [e.name for _, e in ranked]
+    assert names == ["Zed", "Alice", "Bob", "Charlie"]
+    assert [r for r, _ in ranked] == [1, 2, 3, 4]
+
+
+def test_first_to_complete_with_target_badges():
+    # With target_badges=3, anyone with >= 3 counted badges is considered completed
+    config = cfg(target_badges=3)
+    zed = _entry("Zed", 30, 3, date(2026, 9, 1))
+    bob = _entry("Bob", 30, 3, date(2026, 9, 5))
+    alice = _entry("Alice", 30, 3, date(2026, 9, 10))
+    david = _entry("David", 20, 2, date(2026, 9, 1))
+
+    ranked = rank_entries([bob, david, zed, alice], config)
+    names = [e.name for _, e in ranked]
+    assert names == ["Zed", "Alice", "Bob", "David"]
+
+
+def test_program_start_after_13th_midnight():
+    c = cfg(program_start="2026-10-14")
+    b_before = B("1", "skill_badge", date(2026, 10, 13))
+    b_after = B("2", "skill_badge", date(2026, 10, 14))
+    b_later = B("3", "skill_badge", date(2026, 10, 21))
+
+    from app.scoring import evaluate_badge
+    assert evaluate_badge(b_before, c).reason == "before_start"
+    assert evaluate_badge(b_after, c).counted is True
+    assert evaluate_badge(b_later, c).counted is True
+
+
 def test_config_hash_and_snapshot_stable():
     a, b = cfg(points={"skill_badge": 10}), cfg(points={"skill_badge": 10})
     assert a.hash() == b.hash()

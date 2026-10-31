@@ -84,6 +84,20 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);
 .tile b{font-family:var(--display);font-weight:800;font-size:clamp(34px,4vw,52px);letter-spacing:-.04em;line-height:1;display:block}
 .tile span{font-weight:700;font-size:15px}
 
+/* metrics & scoring */
+.metrics{margin-top:24px;padding:24px 28px;background:#fff;border:var(--bd);border-radius:20px;box-shadow:5px 5px 0 var(--k)}
+.metrics-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2.5px solid var(--k);padding-bottom:14px}
+.metrics-top h2{font-family:var(--display);font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1}
+.metrics-top p{margin:4px 0 0;font-size:14px;color:var(--mut);font-weight:500}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.mcard{padding:16px 18px;border:2.5px solid var(--k);border-radius:16px;background:var(--mc-bg,#fff);box-shadow:3px 3px 0 var(--k);display:flex;flex-direction:column;gap:6px}
+.mcard-head{display:flex;justify-content:space-between;align-items:center}
+.mcard-pts{font-family:var(--display);font-size:20px;font-weight:800;padding:2px 10px;border:2px solid var(--k);border-radius:999px;background:#fff;box-shadow:2px 2px 0 var(--k);line-height:1.2}
+.mcard-title{font-weight:800;font-size:16px;margin:2px 0 0}
+.mcard-desc{font-size:13px;color:var(--mut);line-height:1.4;margin:0}
+.metrics-rules{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:2px dashed var(--k);font-size:13px;font-weight:700}
+.metrics-rule{display:inline-flex;align-items:center;gap:6px;background:#f5f7fb;border:2px solid var(--k);padding:6px 12px;border-radius:999px}
+
 /* sections */
 .sec{margin-top:70px}
 .sec h2{font-family:var(--display);font-weight:800;font-size:clamp(34px,4.6vw,56px);letter-spacing:-.035em;line-height:1;margin:0}
@@ -240,6 +254,7 @@ footer img{width:44px}
   .m-head{padding:20px 18px;padding-right:64px}.m-head .avatar{width:64px;height:64px;font-size:22px}
   .bgrid{grid-template-columns:1fr}.m-body{padding:20px 18px 4px}.m-foot{padding:16px 18px 22px}.m-stats div{padding:12px 14px}
   .sec{margin-top:52px}.stats{gap:12px}
+  .metrics{padding:18px 16px}.metrics-grid{grid-template-columns:1fr;gap:10px}
   .camp{grid-template-columns:1fr;max-width:100%}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -286,6 +301,50 @@ footer img{width:44px}
     <div class="tile" style="--c:var(--y)"><b id="sB">0</b><span>Badges earned</span></div>
     <div class="tile" style="--c:var(--g)"><b id="sPt">0</b><span>Points scored</span></div>
     <div class="tile" style="--c:var(--r)"><b id="sTop">0</b><span>Highest score</span></div>
+  </section>
+
+  <section class="metrics" aria-labelledby="metricsTitle">
+    <div class="metrics-top">
+      <div>
+        <h2 id="metricsTitle">How points & rankings work</h2>
+        <p>Verified scoring metrics and tie-breaker rules for the campaign</p>
+      </div>
+      <span class="tier" style="--tc:var(--g)"><i></i>Official Scoring Rules</span>
+    </div>
+    <div class="metrics-grid">
+      <div class="mcard" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Cloud Skill Badge</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Skill Badges</div>
+        <p class="mcard-desc">Earned by completing hands-on Google Cloud skill assessments and quest labs.</p>
+      </div>
+
+      <div class="mcard" style="--mc-bg:rgba(251,188,4,.18)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#b08100">Arcade & Trivia</span>
+          <span class="mcard-pts">+5 pts</span>
+        </div>
+        <div class="mcard-title">Trivia & Game Badges</div>
+        <p class="mcard-desc">Earned from Google Cloud Arcade game milestones, trivia levels, and challenges.</p>
+      </div>
+
+      <div class="mcard" style="--mc-bg:rgba(52,168,83,.14)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--g)">Course Modules</span>
+          <span class="mcard-pts">+3 pts</span>
+        </div>
+        <div class="mcard-title">Course Badges</div>
+        <p class="mcard-desc">Earned upon completing foundational learning courses and module paths.</p>
+      </div>
+    </div>
+
+    <div class="metrics-rules">
+      <span class="metrics-rule">⏱️ <b>Eligibility:</b> Badges earned after Oct 13 midnight count for points</span>
+      <span class="metrics-rule">🏆 <b>Rank order:</b> 1st to complete all badges takes #1; subsequent finishers ordered alphabetically</span>
+      <span class="metrics-rule">🔁 <b>No duplicates:</b> Each unique badge is counted once</span>
+    </div>
   </section>
 
   <section class="sec" aria-labelledby="podH">

@@ -132,11 +132,9 @@ min_team_members: 1         # teams with fewer active members are not ranked
   A title starting with `[Deprecated]` sets `deprecated` and keeps the category.
 - **Dates:** the earned date is compared as the calendar date printed on the profile, which Google shows in US Eastern time (EDT/EST). It is not converted to IST. A badge showing "Earned Oct 31, 2025 EDT" counts for `program_end: 2025-10-31`, even though it was already Nov 1 in India. This keeps scoring matching what students see on their own profile. While a window is set, a badge without a readable date is not counted (`unknown_date`).
 - Each `badge_id` counts once per student. A member's score is the sum of counted badge points, capped if a cap is set. A team's score is the `sum` or `average` of its member scores.
-- **Tie-breakers**, in order:
-  1. higher score
-  2. more counted skill badges
-  3. earlier *reached-final-score* date, meaning the earned date of the badge that brought the member (or, for teams, the last member) to their final score
-  4. name, alphabetical
+- **Ranking and tie-breakers**:
+  1. Participants who completed all badges: the first participant to complete all badges (earliest reached-final-score date) is placed on top (#1). After the first winner, all other finishers who completed are ranked in alphabetical order by name.
+  2. Remaining participants are ranked below by score (descending), skill badges (descending), and name (alphabetical).
 - When a badge doesn't count, the API gives the reason: `before_start`, `after_end`, `deprecated`, `zero_points` or `unknown_date`.
 
 ## The pipeline (one run)
