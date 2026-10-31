@@ -233,9 +233,19 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--k)}
 .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--k);color:#fff;border:2.5px solid #fff;padding:12px 18px;border-radius:14px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;z-index:80}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-footer{margin:80px 0 40px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;font-weight:500;font-size:14px}
+footer{margin:80px 0 40px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;font-weight:500;font-size:14px}
 footer .brand-s{display:flex;align-items:center;gap:12px;font-weight:700}
 footer img{width:44px}
+.footer-left{display:flex;flex-direction:column;gap:4px}
+.footer-sub{font-size:13px;color:var(--mut)}
+.footer-credits{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.credits-label{font-size:12px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.credits-links{display:flex;align-items:center;gap:18px}
+.dev-card{display:flex;flex-direction:column;align-items:center;gap:5px}
+.dev-name{font-weight:700;font-size:13px;color:var(--k)}
+.dev-icons{display:inline-flex;align-items:center;gap:6px}
+.icon-link{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border:2px solid var(--k);border-radius:8px;background:#fff;box-shadow:2px 2px 0 var(--k);color:var(--k);text-decoration:none;transition:transform .12s,box-shadow .12s,background .12s}
+.icon-link:hover{transform:translate(-1.5px,-1.5px);box-shadow:3px 3px 0 var(--k);background:var(--y)}
 .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
 .btn-l{display:inline-block;background:#fff;color:var(--k);text-decoration:none;border:var(--bd);border-radius:14px;padding:10px 18px;font-weight:700;box-shadow:4px 4px 0 var(--k);transition:transform .12s,box-shadow .12s}
 .btn-l:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--k)}
@@ -256,6 +266,8 @@ footer img{width:44px}
   .sec{margin-top:52px}.stats{gap:12px}
   .metrics{padding:18px 16px}.metrics-grid{grid-template-columns:1fr;gap:10px}
   .camp{grid-template-columns:1fr;max-width:100%}
+  footer{flex-direction:column;align-items:flex-start;gap:16px;padding:18px 20px}
+  .footer-credits{align-items:flex-start}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -399,8 +411,37 @@ footer img{width:44px}
   </section>
 
   <footer class="box">
-    <span class="brand-s"><img data-logo alt="">GDG Cloud Campaign 2026 — BMSIT&amp;M</span>
-    <span>Live data verified from Google Cloud Skills Boost profiles.</span>
+    <div class="footer-left">
+      <span class="brand-s"><img data-logo alt="">GDG Cloud Campaign 2026 — BMSIT&amp;M</span>
+      <span class="footer-sub">Live data verified from Google Cloud Skills Boost profiles.</span>
+    </div>
+    <div class="footer-credits">
+      <span class="credits-label">Designed by</span>
+      <div class="credits-links">
+        <div class="dev-card">
+          <span class="dev-name">Mohit</span>
+          <div class="dev-icons">
+            <a href="https://github.com/Berserker-GM" target="_blank" rel="noopener noreferrer" class="icon-link" aria-label="Mohit on GitHub" title="GitHub">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+            <a href="https://www.linkedin.com/in/galaba-mohit-950691380/" target="_blank" rel="noopener noreferrer" class="icon-link" aria-label="Mohit on LinkedIn" title="LinkedIn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="dev-card">
+          <span class="dev-name">Parasmani</span>
+          <div class="dev-icons">
+            <a href="https://github.com/parasmani-dev" target="_blank" rel="noopener noreferrer" class="icon-link" aria-label="Parasmani on GitHub" title="GitHub">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+            <a href="https://www.linkedin.com/in/parasmanikushwaha" target="_blank" rel="noopener noreferrer" class="icon-link" aria-label="Parasmani on LinkedIn" title="LinkedIn">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   </footer>
 </main>
 
