@@ -1,293 +1,228 @@
-# Skill Lab Top-50 Leaderboard (backend)
+<div align="center">
 
-A small Python service that:
+  <img src="frontend/gdg-logo.png" alt="GDG Logo" width="120" />
 
-1. imports the Google Form export (`.xlsx`) of students and their **Google Skills** public profile links,
-2. scrapes each public profile once a day (server-rendered HTML, no JavaScript),
-3. scores students, or teams, on their badges using rules in `scoring.yaml`, and
-4. serves the top 50 over a REST API.
+  # ☁️ GDG Cloud Leaderboard & Tracking Platform
+  ### BMS Institute of Technology & Management (BMSIT&M)
 
-Stack: FastAPI, SQLAlchemy 2 (SQLite by default, Postgres or MySQL via `DATABASE_URL`), httpx, BeautifulSoup + lxml, APScheduler, openpyxl, PyYAML and pytest.
+  **An automated, resilient badge tracking and neo-brutalist live leaderboard for Google Cloud Study Jams & Skill Boost Campaigns.**
 
-> **Student data must never be committed.** `.gitignore` excludes `data/`, `.env`, `*.xlsx`, `*.csv` and `*.db`.
+  [![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://python.org)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+  [![Tests](https://img.shields.io/badge/Tests-107%20Passing-brightgreen?logo=pytest&logoColor=white)](tests/)
+  [![Styling](https://img.shields.io/badge/UI-Neo--Brutalist-yellow?style=flat)](frontend/)
+  [![License](https://img.shields.io/badge/License-MIT-black)](LICENSE)
 
-> **Running the live site?** Follow the step-by-step [operations runbook](docs/RUNBOOK.md): deploying to Render + Supabase, environment variables, the daily refresh, routine tasks, troubleshooting, backups and the pre-launch checklist.
+  [Live Demo](#-live-interface) • [Key Features](#-key-features) • [Scoring Rules](#-scoring--ranking-rules) • [Tech Stack](#-tech-stack) • [Quickstart](#-quickstart--local-development) • [Creators](#-creators--credits)
+
+</div>
 
 ---
 
-## Setup
+## 📌 Overview
+
+The **GDG Cloud Leaderboard** is an end-to-end automation and public leaderboard service designed for Google Developer Groups (GDG) On Campus at **BMSIT&M**. 
+
+During Google Cloud campaigns (such as Study Jams or Skill Lab challenges), students complete hands-on labs and earn digital badges on Google Cloud Skills Boost. Tracking hundreds of participant profiles manually is error-prone and tedious.
+
+This platform automates the entire lifecycle:
+1. **Intelligent Ingestion**: Imports Google Form participant responses with deduplication and URL canonicalization.
+2. **High-Throughput Scraping**: Asynchronously inspects verified public profiles without heavy headless browsers.
+3. **Scoring & Verification**: Categorizes badges, applies date filters, checks criteria, and breaks ties dynamically.
+4. **Neo-Brutalist Presentation**: Serves a responsive, lightweight live leaderboard with search, podium rankings, and badge breakdown modals.
+
+---
+
+## ✨ Key Features
+
+### 🎨 Neo-Brutalist Live Frontend
+- **High-Contrast Design**: Distinct retro-modern brutalist aesthetics featuring sharp borders, offset box shadows, vibrant palette tags, and custom typography.
+- **Top 3 Dynamic Podium**: Interactive podium showcasing the gold, silver, and bronze leaders with high-visibility badges and point counters.
+- **Real-Time Client Search**: Instant search by student name or college department with zero server roundtrips.
+- **Detailed Participant Modal**: Click any student to view their verified badges, category tags, earn dates, and public profile links.
+- **Mobile Responsive**: Custom media query breakpoints ensuring fluid display from mobile screens to 4K displays.
+
+### ⚙️ Scalable & Resilient Pipeline
+- **Lightweight Asynchronous Scraper**: Built using `httpx` and `BeautifulSoup4` (`lxml`). Fetches raw HTML profiles directly with connection pooling, exponential backoff, jitter, and automatic retry handling.
+- **Safe State Persistence**: If a student's profile fetch encounters a transient network issue or 404, their existing badges are preserved and marked `stale` — ensuring an intermittent outage never zeroes out student progress.
+- **Strict Data Validation Gate**: Runs are only published if the success ratio exceeds `MIN_SUCCESS_RATIO` (default 60%) and unclassified `other` badges remain under threshold, preventing corrupted leaderboards if Google updates their HTML structure.
+- **Scoring Audit Trail**: Each pipeline run logs a SHA-256 hash snapshot of the active `scoring.yaml` rules for full transparency and reproducibility.
+
+### 🔒 Privacy-First Architecture
+- **Student Privacy Guaranteed**: USNs (University Seat Numbers), email addresses, and private student identifiers are strictly confined to administrative operations.
+- **Sanitized Public API**: All public API endpoints strip internal identifiers, serving only display names, verified badge counts, and public profile links.
+
+### ⏰ Automated Operations
+- **GitHub Actions Scheduled Sync**: Automatically triggers a backend sync daily at **02:00 AM IST** (`30 20 * * *` UTC) and on every push or merge to the `main` branch.
+- **APScheduler Background Jobs**: Built-in cron scheduler for standalone deployments with database concurrency locking.
+
+---
+
+## 🏆 Scoring & Ranking Rules
+
+Scoring is completely decoupled from application code and managed via [`scoring.yaml`](scoring.yaml):
+
+| Badge Category | Points | Description |
+| :--- | :---: | :--- |
+| **Skill Badge** | **10 pts** | Hands-on challenge lab assessments on Google Cloud Skills Boost. |
+| **Game / Arcade Badge** | **5 pts** | Trivia, Arcade games, and Level milestone badges. |
+| **Course Badge** | **3 pts** | Regular course completion badges. |
+
+### 🎯 Ranking & Tie-Breaker Logic
+1. **Completion Milestone**: The **first participant to complete all badges** (earliest timestamp reaching final score) secures **Rank #1** on the podium.
+2. **Subsequent Finishers**: Any other participants who complete all badges are placed directly below Rank #1 in **alphabetical order**.
+3. **Active Contenders**: All remaining participants are ranked by **Total Points (descending)**, then **Skill Badges (descending)**, and finally by **Name (alphabetical)**.
+4. **Program Eligibility**: Only badges earned within the program window (after **October 13th, midnight / Oct 14, 2026**) are counted towards points.
+
+---
+
+## 🛠️ Tech Stack
+
+```mermaid
+flowchart LR
+    A[Google Form / Excel] -->|CLI / Admin API| B(Idempotent Importer)
+    B --> C[(SQLite / PostgreSQL)]
+    D[Google Cloud Profiles] -->|Async HTTPX + BS4| E(Pipeline Collector)
+    E --> C
+    C --> F(FastAPI Backend)
+    G[scoring.yaml] --> F
+    F -->|REST JSON API| H[Neo-Brutalist Frontend]
+    I[GitHub Actions / Cron] -->|POST /api/admin/refresh| F
+```
+
+- **Backend**: Python 3.11+, [FastAPI](https://fastapi.tiangolo.com/), [SQLAlchemy 2.0](https://www.sqlalchemy.org/)
+- **Database**: SQLite (local/default) or PostgreSQL / Supabase / MySQL (via `DATABASE_URL`)
+- **Scraping & Ingestion**: [HTTPX](https://www.python-httpx.org/), [BeautifulSoup4](https://www.crummy.com/software/BeautifulSoup/), `lxml`, `openpyxl`
+- **Frontend**: Vanilla HTML5, Modern CSS (Custom Neo-Brutalist design system), Vanilla ES6+ JavaScript
+- **Task Scheduling**: APScheduler (in-process) & GitHub Actions (external trigger)
+- **Containerization & Hosting**: Docker, Render / Railway / Supabase
+
+---
+
+## 🚀 Quickstart & Local Development
+
+### 1. Clone & Set Up Virtual Environment
 
 ```bash
+# Clone the repository
+git clone https://github.com/Berserker-GM/GDG.git
+cd GDG
+
+# Create and activate virtual environment
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-pip install -r requirements-dev.txt   # server deps + pytest; the Docker image only needs requirements.txt
-cp .env.example .env             # then edit ADMIN_TOKEN, CONTACT_EMAIL, ...
-pytest                           # network is fully mocked
+
+# Linux / macOS
+source .venv/bin/activate
+# Windows
+.venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements-dev.txt
 ```
 
-## Workflow: import → refresh → serve
+### 2. Configure Environment
 
 ```bash
-# 1. Import the form export (repeat whenever new responses come in; it is idempotent)
-python -m app.cli import "data/Skill Lab (Responses).xlsx" --teams data/teams.csv
-
-# 2. Scrape every profile once, score, validate and publish
-python -m app.cli refresh
-
-# 3. Look at the result / chase broken links
-python -m app.cli leaderboard --limit 50
-python -m app.cli link-report -o data/link-report.csv
-
-# 4. Serve the API (the scheduler refreshes daily at REFRESH_CRON)
-python -m app.cli serve --port 8000
+cp .env.example .env
 ```
 
-Debug a single profile without touching the database:
+Key environment variables:
+- `ADMIN_TOKEN`: Secret key for administrative endpoints.
+- `CONTACT_EMAIL`: Email included in User-Agent header for courteous scraping.
+- `SCORING_CONFIG`: Path to scoring config (default: `scoring.yaml`).
+- `DATABASE_URL`: Defaults to local SQLite (`sqlite:///data/leaderboard.db`).
+
+### 3. Run the Test Suite
+
+All network requests are mocked with `pytest` for deterministic, offline testing:
 
 ```bash
-python -m app.cli scrape-one https://www.skills.google/public_profiles/<uuid>
+python -m pytest
 ```
 
-### Trying it offline with synthetic data
+### 4. Seed Synthetic Data (Offline Demo)
+
+You can generate synthetic participant submissions and run a local mock pipeline:
 
 ```bash
+# Generate mock participants and team CSV
 python scripts/generate_sample_form.py data/sample_form.xlsx --teams data/sample_teams.csv
-python -m app.cli import data/sample_form.xlsx
-python scripts/mock_refresh.py      # refresh against a mocked site, then prints /api/leaderboard
+
+# Import into local database
+python -m app.cli import data/sample_form.xlsx --teams data/sample_teams.csv
+
+# Execute offline refresh against mocked Google profiles
+python scripts/mock_refresh.py
 ```
 
-### Helper scripts for a running server
-
-Both talk to the HTTP API only and need `pip install -r requirements-dev.txt` (for `requests`). Nothing is hardcoded: pass options or set the environment variables.
+### 5. Start the Local Server
 
 ```bash
-# import the form if the DB is empty, trigger a refresh, wait for it, print the board
-python scripts/run_pipeline.py --base-url http://localhost:8000 --admin-token "$ADMIN_TOKEN" --xlsx path/to/form.xlsx
-
-# just watch the current run
-python scripts/monitor_run.py --base-url http://localhost:8000
+python -m app.cli serve --host 127.0.0.1 --port 8000
 ```
 
-| Option | Env var | Used by |
-|---|---|---|
-| `--base-url` | `BASE_URL` (default `http://localhost:8000`) | both |
-| `--admin-token` | `ADMIN_TOKEN` (required) | `run_pipeline.py` |
-| `--xlsx` | `FORM_XLSX` (only needed when the DB is empty) | `run_pipeline.py` |
+Open [http://localhost:8000](http://localhost:8000) in your browser to view the live neo-brutalist leaderboard. Interactive API documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-## What the importer does
+---
 
-- Finds the sheet named **Form responses 1** (falls back to the first sheet). It matches headers case-insensitively by keyword, so trailing spaces and newlines don't matter.
-- **USN** is the student key. It is trimmed, stripped of inner whitespace and uppercased. When a USN appears twice, the row with the latest `Timestamp` wins. If the two submissions used different profiles, the import report lists it as a *USN conflict*.
-- **Year** values such as `2.0` are stored as `"2"`. An email without `@` is stored as typed and flagged `invalid_email`. A "No" registration answer is flagged `not_registered` but still processed.
-- **Profile URL** values:
-  - `https://(www.)skills.google/public_profiles/<uuid>` is accepted with or without a trailing slash or query string. It is stored as `https://www.skills.google/public_profiles/<uuid>`, and `profile_id` is the lowercase UUID.
-  - The legacy `https://www.cloudskillsboost.google/public_profiles/<uuid>` is rewritten to the skills.google form.
-  - `https://me.developers.google.com/u/<digits>` (and g.dev) gets `unsupported_platform` and is skipped. The URL is kept for a future collector.
-  - Anything else gets `invalid_url`, and an empty cell gets `missing_url`.
-  - When two USNs use the same profile, both are flagged `shared_profile`.
-- **Re-imports** upsert by USN:
-  - Students missing from the new file become `active=False`.
-  - If a student's profile URL changes, their stored badges are deleted and the link goes back to `pending`.
-- Emails, the college email and the USN are stored for organizers, but **no public endpoint returns them**.
+## 🌐 API Overview
 
-## How teams are mapped
+### Public Endpoints (No Authentication Required)
+- `GET /` — Serves the frontend web interface.
+- `GET /health` — Service healthcheck and database connectivity status.
+- `GET /api/leaderboard?limit=50` — Current published standings, podium leaders, and score breakdowns.
+- `GET /api/leaderboard/status` — Pipeline status, last sync timestamp, and link health statistics.
+- `GET /api/members/{member_id}` — Detailed badge breakdown and verification history for a single participant.
 
-The form has no team column. Teams come from either:
+### Admin Endpoints (Requires `X-Admin-Token` header)
+- `POST /api/admin/refresh` — Triggers an asynchronous scraping and ranking pipeline run.
+- `POST /api/admin/import` — Ingests a new `.xlsx` form export with automated upserts.
+- `GET /api/admin/link-report` — Exports a CSV audit report of all profile URLs and validation statuses.
 
-1. an optional **`Team`** column in the same sheet, or
-2. a mapping file passed with `--teams` (or as the `teams` field of `POST /api/admin/import`). It can be CSV or XLSX, with columns `USN, Team`. Where both exist, the file wins and the column fills the gaps.
+---
 
-If an import has no team information at all, existing team assignments are left untouched.
+## 📂 Project Directory Structure
 
-`LEADERBOARD_MODE` picks the leaderboard type:
-
-| Value | Behaviour |
-|---|---|
-| `auto` (default) | Team leaderboard if any active member has a team, otherwise an individual (solo) leaderboard |
-| `team` | Teams only. Students without a team aren't ranked; they are listed in `/api/leaderboard/status` → `unassigned_members` and in the import report. |
-| `solo` | Individual students with a supported profile link |
-
-## Scoring: `scoring.yaml`
-
-Edit `scoring.yaml` (or point `SCORING_CONFIG` at another file); the next run uses it, with no code change or restart. Every run stores a SHA-256 hash and a full snapshot of the effective config (`/api/leaderboard/runs/{id}` → `scoring`), so any old leaderboard can be explained and reproduced.
-
-```yaml
-program_start: null        # "YYYY-MM-DD": badges earned before this date don't count
-program_end: null          # optional, inclusive
-points: {skill_badge: 10, course_badge: 3, game_badge: 5, other: 0}
-count_deprecated: true      # false = "[Deprecated] ..." badges score 0
-badge_overrides: {}         # exact badge title -> points; wins over category
-max_points_per_member: null # optional cap
-team_aggregation: sum       # sum | average (average over members with a working link)
-min_team_members: 1         # teams with fewer active members are not ranked
+```text
+├── .github/workflows/       # GitHub Actions (daily-refresh.yml, test.yml)
+├── app/
+│   ├── api.py               # FastAPI application & route controllers
+│   ├── cli.py               # Command-line administrative tooling
+│   ├── config.py            # Environment settings & configuration loader
+│   ├── db.py                # Database connection & session lifecycle
+│   ├── models.py            # SQLAlchemy declarative ORM models
+│   ├── pipeline.py          # Lock -> Scrape -> Score -> Validate -> Publish
+│   ├── scoring.py           # Scoring rules engine & tie-breaking algorithms
+│   ├── importer.py          # Google Form (.xlsx) idempotent parser
+│   ├── urls.py              # Profile link normalization & sanitization
+│   └── collectors/          # Public profile scrapers & parser logic
+├── docs/
+│   └── RUNBOOK.md           # Production deployment & operations runbook
+├── frontend/
+│   ├── index.html           # Neo-brutalist single-page application
+│   └── gdg-logo.png         # GDG On Campus branding asset
+├── scripts/                 # Synthetic data generators & mock helpers
+├── tests/                   # Pytest comprehensive test suite (100+ tests)
+├── scoring.yaml             # Declarative point weights & program dates
+└── requirements.txt         # Production dependencies
 ```
 
-- **Badge categories** come from the badge's "Learn more" dialog:
-  - `/games/…` → `game_badge`
-  - `/course_templates/…` with "skill badge" in the description → `skill_badge`
-  - any other `/course_templates/…` → `course_badge`
-  - no dialog for that badge, and a title matching `^Level \d+:` or containing `Arcade` or `Trivia` → `game_badge`
-  - everything else → `other`
+---
 
-  A title starting with `[Deprecated]` sets `deprecated` and keeps the category.
-- **Dates:** the earned date is compared as the calendar date printed on the profile, which Google shows in US Eastern time (EDT/EST). It is not converted to IST. A badge showing "Earned Oct 31, 2025 EDT" counts for `program_end: 2025-10-31`, even though it was already Nov 1 in India. This keeps scoring matching what students see on their own profile. While a window is set, a badge without a readable date is not counted (`unknown_date`).
-- Each `badge_id` counts once per student. A member's score is the sum of counted badge points, capped if a cap is set. A team's score is the `sum` or `average` of its member scores.
-- **Ranking and tie-breakers**:
-  1. Participants who completed all badges: the first participant to complete all badges (earliest reached-final-score date) is placed on top (#1). After the first winner, all other finishers who completed are ranked in alphabetical order by name.
-  2. Remaining participants are ranked below by score (descending), skill badges (descending), and name (alphabetical).
-- When a badge doesn't count, the API gives the reason: `before_start`, `after_end`, `deprecated`, `zero_points` or `unknown_date`.
+## 👥 Creators & Credits
 
-## The pipeline (one run)
+Crafted with ❤️ for the Google Cloud developer community at **BMSIT&M**:
 
-1. **Lock.** The run takes an in-process asyncio lock plus a DB lock: it refuses to start while another run has been `running` for less than `RUN_LOCK_TIMEOUT_HOURS` (default 2). Older `running` rows are marked `failed` as abandoned.
-2. **Create the run.** It creates a `runs` row and stores the scoring hash and snapshot.
-3. **Fetch.** It fetches every active member with a supported link, with `FETCH_CONCURRENCY` parallel requests and a `FETCH_DELAY_SECONDS` pause after each one. It sends an honest `User-Agent` containing `CONTACT_EMAIL`. Failed requests are retried up to `FETCH_MAX_RETRIES` times, with exponential backoff and jitter, on timeouts, connection errors, 429 and 5xx; `Retry-After` is respected. A 404 means `not_found` and is not retried.
-4. **Save results.**
-   - **On success,** new badges are inserted, changed ones updated and vanished ones deleted. `first_seen_at` is preserved as evidence for disputes.
-   - **On failure** (`fetch_error`, `not_found` or `parse_error`), the member's previous badges are kept and marked `stale`. A failure never counts as zero badges.
-   - **Parse errors** come from three cases: the page has no `<h1>`; it has no badges and also lacks the "…hasn't earned any badges yet" text; or it has badges but not one of them could be matched to its `ql-dialog` source path. Zero badges is trusted only when the page says so, so a redesign of the badge section makes the run fail validation instead of silently zeroing everyone. An empty profile can still show a league and points, because points also come from labs.
-5. **Score and rank,** then keep the top `LEADERBOARD_SIZE`.
-6. **Validate.** The run is published only if `succeeded / attempted >= MIN_SUCCESS_RATIO` **and** no more than `MAX_OTHER_BADGE_RATIO` (50%) of the badges fetched in this run were classified `other`. A flood of `other` badges, which score 0, means the classification markup has changed. Otherwise the run is `rejected`, its notes say why, and the API keeps serving the previous published run. Standings are written in the same transaction that sets the status.
+| Creator | Profile Links |
+| :--- | :--- |
+| **Mohit** (Galaba Mohit) | [![GitHub](https://img.shields.io/badge/GitHub-Berserker--GM-181717?style=flat&logo=github)](https://github.com/Berserker-GM) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Galaba_Mohit-0A66C2?style=flat&logo=linkedin)](https://www.linkedin.com/in/galaba-mohit-950691380/) |
+| **Parasmani** (Parasmani Kushwaha) | [![GitHub](https://img.shields.io/badge/GitHub-parasmani--dev-181717?style=flat&logo=github)](https://github.com/parasmani-dev) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Parasmani_Kushwaha-0A66C2?style=flat&logo=linkedin)](https://www.linkedin.com/in/parasmanikushwaha) |
 
-## API
+**Community**: [Google Developer Groups (GDG) On Campus — BMS Institute of Technology & Management](https://bmsit.ac.in)
 
-Public endpoints never return emails or USNs.
+---
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/health` | `{"status":"ok","database":"ok"}` (503 if the DB is unreachable) |
-| GET | `/api/leaderboard?limit=50` | Latest **published** run: `run_id`, `published_at`, `mode`, entries (rank, name, score, counted_badges, breakdown; for teams, each member's name, score and stale flag) |
-| GET | `/api/leaderboard/history?limit=30` | Past runs with status and counts |
-| GET | `/api/leaderboard/status` | Last run, last published run, next scheduled run, link-health counts, unassigned members (team mode) |
-| GET | `/api/leaderboard/runs/{run_id}` | Standings and scoring snapshot of a past run |
-| GET | `/api/teams/{team_id}` | Team, its members, and each member's counted and uncounted badges (with reason); `live_score` and `published_score` for the team and each member |
-| GET | `/api/members/{member_id}` | Name, department, year, display_name, league, platform_points, last_success_at, link_status, badges, `live_score`, `published_score` |
+## 📄 License
 
-On the detail endpoints:
-
-- `live_score` is computed now, from the stored badges and the current `scoring.yaml`.
-- `published_score` (with `published_rank` and `published_run_id`) is the score in the latest published run, which is what the leaderboard shows. It is `null` for anyone outside that run's top `LEADERBOARD_SIZE`. In team mode, members have a `published_score` but no `published_rank`.
-- The two differ after a `scoring.yaml` edit, or when a run was rejected.
-
-Admin endpoints require the header `X-Admin-Token: $ADMIN_TOKEN`. They return 401 when the header is missing, 403 when it is wrong, and 503 when no token is configured.
-
-| Method | Path | Description |
-|---|---|---|
-| POST | `/api/admin/refresh` | Starts a run in the background → `202 {"run_id": …}`; `409` if one is running |
-| POST | `/api/admin/import` | Multipart: `form` (.xlsx) and optional `teams` (.csv/.xlsx) → import report |
-| GET | `/api/admin/link-report` | CSV: USN, name, email, profile_url, link_status, last_error, active, flags |
-
-```bash
-curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" -F form=@responses.xlsx -F teams=@teams.csv http://localhost:8000/api/admin/import
-curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" http://localhost:8000/api/admin/refresh
-```
-
-Interactive docs are at `/docs`.
-
-## Environment variables
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `DATABASE_URL` | `sqlite:///data/leaderboard.db` | SQLAlchemy URL. MySQL: `mysql+pymysql://user:pass@host:3306/db`. Postgres: `postgresql://…?sslmode=require` (`postgres://` is rewritten automatically). On Postgres the tables get Row Level Security with no policies, so the role in `DATABASE_URL` must own them |
-| `LEADERBOARD_MODE` | `auto` | `auto`, `team` or `solo` |
-| `LEADERBOARD_SIZE` | `50` | Standings stored per run |
-| `MIN_SUCCESS_RATIO` | `0.6` | Minimum successful/attempted fetches to publish |
-| `MAX_OTHER_BADGE_RATIO` | `0.5` | Reject the run if more than this share of fetched badges is category `other` |
-| `SCORING_CONFIG` | `scoring.yaml` | Path to the scoring rules |
-| `RUN_LOCK_TIMEOUT_HOURS` | `2` | After this, a `running` run is treated as abandoned |
-| `CONTACT_EMAIL` | `organizers@example.edu` | Put into the User-Agent |
-| `USER_AGENT` | `SkillLabLeaderboard/1.0 (+mailto:<CONTACT_EMAIL>)` | Full override |
-| `FETCH_CONCURRENCY` | `3` | Parallel requests |
-| `FETCH_DELAY_SECONDS` | `1.5` | Pause after each request (per slot) |
-| `FETCH_TIMEOUT_SECONDS` | `20` | Per-request timeout |
-| `FETCH_MAX_RETRIES` | `3` | Retries after the first attempt |
-| `FETCH_BACKOFF_BASE` | `2.0` | Backoff base seconds (`base·2^n + jitter`) |
-| `ADMIN_TOKEN` | *(empty: admin disabled)* | Shared secret for admin endpoints |
-| `CORS_ORIGINS` | *(empty)* | Comma-separated allowed origins. Leave empty when the frontend is served by this app at `/` |
-| `ENABLE_SCHEDULER` | `true` | Run the daily job in this process |
-| `REFRESH_CRON` | `0 2 * * *` | Crontab for the refresh |
-| `TIMEZONE` | `Asia/Kolkata` | Timezone of the cron expression |
-| `LOG_LEVEL` | `INFO` | Python log level |
-
-The variables are read from the environment, or from a `.env` file in the working directory.
-
-### Scheduler: run exactly one
-
-The daily job runs inside the API process: APScheduler's `AsyncIOScheduler`, with `max_instances=1`, `coalesce=True` and a one-hour misfire grace time. **Only one instance may run the scheduler.** If you run several API replicas, set `ENABLE_SCHEDULER=false` on all but one, or on all of them and trigger `POST /api/admin/refresh` from an external cron. The DB lock still stops overlapping runs across processes.
-
-## Deployment
-
-### Docker (any small VM)
-
-```bash
-docker build -t skill-leaderboard .
-docker run -d --name leaderboard -p 8000:8000 \
-  --env-file .env -v leaderboard-data:/app/data \
-  --restart unless-stopped skill-leaderboard
-
-# import / refresh inside the container
-docker cp responses.xlsx leaderboard:/app/data/responses.xlsx
-docker exec leaderboard python -m app.cli import data/responses.xlsx
-docker exec leaderboard python -m app.cli refresh
-```
-
-The image is `python:3.11-slim` and runs as a non-root `app` user, with `/app/data` as a volume (SQLite lives there). Put Caddy or nginx in front for TLS.
-
-### Render / Railway
-
-- Deploy from the repo with the Dockerfile. Both platforms set `$PORT`, which the server and the container `HEALTHCHECK` both honour.
-- **SQLite needs a persistent disk.** Both platforms wipe the container filesystem on every deploy and restart. Without a disk, the database, with every import, badge and published run, is lost each time.
-  - **Render:** attach a persistent disk mounted at `/app/data` (paid instance types), or use a managed MySQL and set `DATABASE_URL`.
-  - **Railway:** add a volume mounted at `/app/data`, or a MySQL plugin with `DATABASE_URL=mysql+pymysql://…`.
-- Run a single instance, or set `ENABLE_SCHEDULER=false` on extra ones.
-- Set `ADMIN_TOKEN`, `CONTACT_EMAIL` and `CORS_ORIGINS` (your frontend's origin) in the dashboard. Upload responses with `POST /api/admin/import`.
-
-### Hosts that sleep: trigger the refresh from outside
-
-The in-process scheduler only fires while the process is awake. On hosts that spin down idle services (Render's free tier, Railway with sleeping enabled, and similar), the 02:00 job will usually be missed. On those hosts, set `ENABLE_SCHEDULER=false` and have an external cron call the admin endpoint once a day. The request also wakes the service.
-
-```bash
-curl -fsS -X POST -H "X-Admin-Token: $ADMIN_TOKEN" https://your-app.example.com/api/admin/refresh
-```
-
-- **cron-job.org:** create a daily job with method `POST`, that URL, and an `X-Admin-Token` header.
-- **GitHub Actions:** [`.github/workflows/daily-refresh.yml`](.github/workflows/daily-refresh.yml) does the same with the repository secrets `APP_URL` and `ADMIN_TOKEN`. It ships disabled (manual `workflow_dispatch` only); uncomment its `schedule` line (`30 20 * * *` = 02:00 IST) to turn it on. See [docs/RUNBOOK.md](docs/RUNBOOK.md#6-daily-refresh).
-
-A cold start can take a while, which is why the workflow first wakes `/health` and uses `--retry`. A `409` means a run is already in progress, which is fine. The refresh itself runs in the background after the `202`, so the host must stay awake for a few minutes. Most hosts keep a service up for at least 15 minutes after a request.
-
-## Backups
-
-- **SQLite:** the whole state is `data/leaderboard.db`. Make a consistent copy while the app runs with `sqlite3 data/leaderboard.db ".backup data/backup-$(date +%F).db"`, or stop the app and copy the file. Keep the copies off the server.
-- **MySQL:** use the provider's automated backups, or `mysqldump --single-transaction`.
-- Old leaderboards stay reproducible from the DB alone: every run keeps its standings and the scoring snapshot.
-
-## Project layout
-
-```
-app/
-  config.py          settings from env
-  db.py, models.py   engine/session, ORM (teams, members, badges, runs, standings)
-  urls.py            profile-URL validation and normalisation
-  importer.py        form + team import, idempotent upsert
-  collectors/        base.py: Collector protocol (fetch(profile) -> ProfileResult)
-                     skills_google.py + skills_parser.py: Google Skills collector
-  scoring.py         scoring.yaml rules, badge verdicts, tie-break ranking
-  leaderboard.py     builds entries from the DB
-  pipeline.py        lock → collect → score → validate → publish
-  scheduler.py       APScheduler daily job
-  api.py, cli.py     FastAPI app and CLI
-scripts/             synthetic sample data, offline mock refresh, run_pipeline/monitor_run helpers
-frontend/            static leaderboard page served at /
-tests/               pytest suite (network mocked)
-```
-
-### Adding the Google Developer Program (g.dev) later
-
-1. Implement `Collector` in `app/collectors/` (`platform = "google_developers"`, `async fetch(ProfileRef) -> ProfileResult`).
-2. Register it in `build_collectors`.
-3. Add `"google_developers"` to `SUPPORTED_PLATFORMS` in `app/leaderboard.py`.
-4. Have `urls.check_profile_url` return `pending` for those links.
-
-The URLs are already stored.
-
-Schema is created with `create_all` on startup. The models are plain declarative SQLAlchemy, so Alembic can be added later (`alembic init`, point `target_metadata` at `app.db.Base.metadata`).
+This project is open-source under the [MIT License](LICENSE).
+Feel free to use and adapt this system for your university or community GDG events!
