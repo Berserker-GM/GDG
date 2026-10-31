@@ -274,3 +274,68 @@ async def test_unsupported_links_are_not_fetched(settings, tmp_path):
     summary = await run_pipeline("test", build_collectors(settings, transport=httpx.MockTransport(handler)))
     assert summary["attempted"] == 1
     assert requested == [profile_url(0)]
+
+
+def _owned_collectors(monkeypatch, pages, settings):
+    """Let execute_run build (and close) the collectors itself, as it does in production."""
+    import app.pipeline as pipeline
+
+    monkeypatch.setattr(pipeline, "build_collectors", lambda s=None: collectors_for(pages, settings)())
+
+
+async def test_save_error_for_one_profile_does_not_abort_run(settings, tmp_path, monkeypatch):
+    import app.pipeline as pipeline
+
+    seed(tmp_path, n=6)
+    pages = {UUIDS[i]: page(f"S{i}", (f"{i}", "Skill", "Oct 1, 2026", *SKILL)) for i in range(6)}
+    _owned_collectors(monkeypatch, pages, settings)
+    with db.session_scope() as s:
+        broken_id = s.scalars(select(Member.id).where(Member.usn == "U0")).one()
+    real_apply = pipeline.apply_result
+
+    def flaky_apply(member_id, result):
+        if member_id == broken_id:
+            raise RuntimeError("database connection lost")
+        return real_apply(member_id, result)
+
+    monkeypatch.setattr(pipeline, "apply_result", flaky_apply)
+    summary = await run_pipeline("test")
+    assert summary["status"] == "published"
+    assert summary["attempted"] == 6 and summary["succeeded"] == 5 and summary["failed"] == 1
+    assert "save_error=1" in summary["notes"]
+    with db.session_scope() as s:
+        others = s.scalars(select(Member).where(Member.usn != "U0")).all()
+        assert all(m.link_status == "ok" for m in others)
+
+
+class _Fatal(BaseException):
+    pass
+
+
+async def test_aborted_run_cancels_pending_fetches(settings, tmp_path, monkeypatch):
+    """When a run dies, queued fetches must not keep going on the closed HTTP client."""
+    import asyncio
+
+    import app.pipeline as pipeline
+
+    seed(tmp_path, n=9)
+    pages = {UUIDS[i]: page(f"S{i}", (f"{i}", "Skill", "Oct 1, 2026", *SKILL)) for i in range(9)}
+    _owned_collectors(monkeypatch, pages, settings)
+    real_apply = pipeline.apply_result
+    saved = []
+
+    def apply_then_die(member_id, result):
+        saved.append(result.error)
+        if len(saved) == 1:
+            raise _Fatal("run killed")
+        return real_apply(member_id, result)
+
+    monkeypatch.setattr(pipeline, "apply_result", apply_then_die)
+    with pytest.raises(_Fatal):
+        await run_pipeline("test")
+    await asyncio.sleep(0.3)  # give any orphaned fetches time to run
+    assert not any(e and "client has been closed" in e for e in saved)
+    with db.session_scope() as s:
+        run = s.scalars(select(Run).order_by(Run.id.desc())).first()
+        assert run.status == "failed"
+    assert not pipeline.is_running_in_process()

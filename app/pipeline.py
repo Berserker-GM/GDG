@@ -159,7 +159,14 @@ async def execute_run(
                 result = ProfileResult(
                     status=FETCH_ERROR, url=ref.url, error=f"{type(exc).__name__}: {exc}", fetched_at=utcnow()
                 )
-            apply_result(ref.member_id, result)
+            try:
+                # In a thread: a slow database must not freeze the event loop (API requests, other fetches).
+                await asyncio.to_thread(apply_result, ref.member_id, result)
+            except Exception:
+                # Saving failed (e.g. a dropped DB connection); count it like a failed fetch and keep going.
+                log.exception("Could not save the result for member %s", ref.member_id)
+                failures["save_error"] = failures.get("save_error", 0) + 1
+                return
             if result.ok:
                 succeeded += 1
                 badges_seen += len(result.badges)
@@ -167,7 +174,15 @@ async def execute_run(
             else:
                 failures[result.status] = failures.get(result.status, 0) + 1
 
-        await asyncio.gather(*(collect(ref) for ref in refs))
+        tasks = [asyncio.create_task(collect(ref)) for ref in refs]
+        try:
+            await asyncio.gather(*tasks)
+        finally:
+            # If the run is aborting, stop the queued fetches before the HTTP client is closed below;
+            # otherwise each one fails on the closed client and marks its member stale.
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
         attempted = len(refs)
         ratio = succeeded / attempted if attempted else 0.0
         other_ratio = other_badges / badges_seen if badges_seen else 0.0
@@ -240,14 +255,19 @@ async def execute_run(
             summary,
         )
         return summary
-    except Exception as exc:
+    except BaseException as exc:
+        # BaseException too: a cancelled run (e.g. the server shutting down) must not stay "running"
+        # and block new runs until RUN_LOCK_TIMEOUT_HOURS.
         log.exception("Run %s failed", run_id)
-        with session_scope() as session:
-            run = session.get(Run, run_id)
-            if run is not None:
-                run.status = RUN_FAILED
-                run.finished_at = utcnow()
-                run.notes = f"{type(exc).__name__}: {exc}"[:2000]
+        try:
+            with session_scope() as session:
+                run = session.get(Run, run_id)
+                if run is not None:
+                    run.status = RUN_FAILED
+                    run.finished_at = utcnow()
+                    run.notes = f"{type(exc).__name__}: {exc}"[:2000]
+        except Exception:
+            log.exception("Could not mark run %s as failed", run_id)
         raise
     finally:
         if owned and collectors:
