@@ -62,14 +62,23 @@ This platform automates the entire lifecycle:
 
 Scoring is completely decoupled from application code and managed via [`scoring.yaml`](scoring.yaml):
 
-| Badge Category | Points | Description |
-| :--- | :---: | :--- |
-| **Skill Badge** | **10 pts** | Hands-on challenge lab assessments on Google Cloud Skills Boost. |
-| **Game / Arcade Badge** | **5 pts** | Trivia, Arcade games, and Level milestone badges. |
-| **Course Badge** | **3 pts** | Regular course completion badges. |
+Only the **10 syllabus skill badges** listed under `syllabus:` in `scoring.yaml` count. Each earns **10 points**; badges from any other course (or games/trivia) earn **0**. Badges are matched by their `course_templates/<id>`, and each course counts once.
+
+| # | Syllabus Course | Points |
+| :---: | :--- | :---: |
+| 1 | [The Basics of Google Cloud Compute](https://www.skills.google/course_templates/754) | 10 |
+| 2 | [Configure Service Accounts and IAM Roles for Google Cloud](https://www.skills.google/course_templates/702) | 10 |
+| 3 | [Implement Speech and Language Solutions with Pre-trained APIs](https://www.skills.google/course_templates/700) | 10 |
+| 4 | [Develop AI-Powered Prototypes in Google AI Studio](https://www.skills.google/course_templates/1426) | 10 |
+| 5 | [Analyze Images with the Cloud Vision API](https://www.skills.google/course_templates/633) | 10 |
+| 6 | [Build a Website on Google Cloud](https://www.skills.google/course_templates/638) | 10 |
+| 7 | [Create Your First Gemini Enterprise Application](https://www.skills.google/course_templates/1586) | 10 |
+| 8 | [Store, Process, and Manage Data on Google Cloud - Console](https://www.skills.google/course_templates/658) | 10 |
+| 9 | [Using the Google Cloud Speech API](https://www.skills.google/course_templates/756) | 10 |
+| 10 | [Explore Generative AI in Agent Platform](https://www.skills.google/course_templates/959) | 10 |
 
 ### 🎯 Ranking & Tie-Breaker Logic
-1. **Completion Milestone**: The **first participant to complete all badges** (earliest timestamp reaching final score) secures **Rank #1** on the podium.
+1. **Completion Milestone**: The **first participant to complete all 10 syllabus badges** (earliest timestamp reaching final score) secures **Rank #1** on the podium.
 2. **Subsequent Finishers**: Any other participants who complete all badges are placed directly below Rank #1 in **alphabetical order**.
 3. **Active Contenders**: All remaining participants are ranked by **Total Points (descending)**, then **Skill Badges (descending)**, and finally by **Name (alphabetical)**.
 4. **Program Eligibility**: Only badges earned within the program window (after **October 13th, midnight / Oct 14, 2026**) are counted towards points.
