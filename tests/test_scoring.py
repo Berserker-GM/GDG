@@ -11,6 +11,7 @@ class B:
     earned_date: date | None = date(2026, 9, 10)
     title: str = "Badge"
     deprecated: bool = False
+    source_path: str | None = None
 
 
 def cfg(**kw) -> ScoringConfig:
@@ -171,3 +172,70 @@ def test_repo_scoring_yaml_loads():
     c = ScoringConfig.load(Path(__file__).parent.parent / "scoring.yaml")
     assert c.points == {"skill_badge": 10, "course_badge": 3, "game_badge": 5, "other": 0}
     assert c.team_aggregation == "sum"
+    assert len(c.syllabus) == 10
+    assert c.completion_target == 10
+    assert {course.points for course in c.syllabus} == {10}
+
+
+SYLLABUS = [
+    {"title": "Build a Website on Google Cloud", "url": "https://www.skills.google/course_templates/638", "points": 13},
+    {"title": "Develop AI-Powered Prototypes", "url": "https://www.skills.google/course_templates/1426/", "points": 0},
+]
+
+
+def test_syllabus_only_counts_listed_courses_with_their_points():
+    c = cfg(syllabus=SYLLABUS)
+    s = score_member(
+        1,
+        "A",
+        [
+            B("1", "skill_badge", source_path="/course_templates/638"),
+            B("2", "skill_badge", source_path="/course_templates/978"),  # not in syllabus
+            B("3", "game_badge", source_path="/games/32800"),
+        ],
+        c,
+    )
+    assert s.score == 13 and s.counted_badges == 1
+
+
+def test_syllabus_zero_point_badge_still_completes():
+    c = cfg(syllabus=SYLLABUS)
+    s = score_member(
+        1,
+        "A",
+        [
+            B("1", "skill_badge", date(2026, 10, 20), source_path="/course_templates/638"),
+            B("2", "skill_badge", date(2026, 10, 25), source_path="/course_templates/1426"),
+        ],
+        c,
+    )
+    assert s.score == 13 and s.counted_badges == 2
+    assert s.reached_at == date(2026, 10, 25)  # completing the set needs the 0-point badge too
+    assert c.completion_target == 2
+
+
+def test_syllabus_title_fallback_and_course_counted_once():
+    c = cfg(syllabus=SYLLABUS)
+    s = score_member(
+        1,
+        "A",
+        [
+            B("1", "skill_badge", title="Build a  Website on Google Cloud"),
+            B("2", "skill_badge", source_path="/course_templates/638"),
+            B("3", "skill_badge", title="Some Other Course"),
+        ],
+        c,
+    )
+    assert s.score == 13 and s.counted_badges == 1
+
+
+def test_syllabus_completers_ranked_first():
+    c = cfg(syllabus=SYLLABUS)
+    done = [B("1", "skill_badge", date(2026, 10, 20), source_path="/course_templates/638"),
+            B("2", "skill_badge", date(2026, 10, 22), source_path="/course_templates/1426")]
+    early = [B("1", "skill_badge", date(2026, 10, 15), source_path="/course_templates/638")]
+    entries = [
+        member_entry(score_member(1, "Zed", done, c)),
+        member_entry(score_member(2, "Amy", early, c)),
+    ]
+    assert [e.name for _, e in rank_entries(entries, c)] == ["Zed", "Amy"]

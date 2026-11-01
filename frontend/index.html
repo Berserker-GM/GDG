@@ -89,8 +89,8 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);
 .metrics-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px;border-bottom:2.5px solid var(--k);padding-bottom:14px}
 .metrics-top h2{font-family:var(--display);font-size:clamp(22px,2.6vw,30px);font-weight:800;letter-spacing:-.03em;margin:0;line-height:1.1}
 .metrics-top p{margin:4px 0 0;font-size:14px;color:var(--mut);font-weight:500}
-.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.mcard{padding:16px 18px;border:2.5px solid var(--k);border-radius:16px;background:var(--mc-bg,#fff);box-shadow:3px 3px 0 var(--k);display:flex;flex-direction:column;gap:6px}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.mcard{color:inherit;text-decoration:none;padding:16px 18px;border:2.5px solid var(--k);border-radius:16px;background:var(--mc-bg,#fff);box-shadow:3px 3px 0 var(--k);display:flex;flex-direction:column;gap:6px}
 .mcard-head{display:flex;justify-content:space-between;align-items:center}
 .mcard-pts{font-family:var(--display);font-size:20px;font-weight:800;padding:2px 10px;border:2px solid var(--k);border-radius:999px;background:#fff;box-shadow:2px 2px 0 var(--k);line-height:1.2}
 .mcard-title{font-weight:800;font-size:16px;margin:2px 0 0}
@@ -288,7 +288,7 @@ footer img{width:44px}
     <div class="hero-grid">
       <div>
         <h1>Climb<br>the cloud.</h1>
-        <p class="lede">Every Google Cloud badge you finish adds points. Find your rank, see who you can catch next, and pick your next lab.</p>
+        <p class="lede">Every syllabus skill badge you finish adds 10 points. Find your rank, see who you can catch next, and pick your next lab.</p>
         <div class="camp" id="camp"></div>
         <div class="cta">
           <a class="btn-l" href="https://www.skills.google/credentials/skill_badge" target="_blank" rel="noopener noreferrer">Browse skill badges</a>
@@ -319,42 +319,86 @@ footer img{width:44px}
     <div class="metrics-top">
       <div>
         <h2 id="metricsTitle">How points & rankings work</h2>
-        <p>Verified scoring metrics and tie-breaker rules for the campaign</p>
+        <p>Only the 10 syllabus skill badges below count. Each one is worth 10 points. Badges from any other course earn nothing.</p>
       </div>
       <span class="tier" style="--tc:var(--g)"><i></i>Official Scoring Rules</span>
     </div>
     <div class="metrics-grid">
-      <div class="mcard" style="--mc-bg:rgba(66,133,244,.12)">
+      <a class="mcard" href="https://www.skills.google/course_templates/754" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
         <div class="mcard-head">
-          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Cloud Skill Badge</span>
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 1</span>
           <span class="mcard-pts">+10 pts</span>
         </div>
-        <div class="mcard-title">Skill Badges</div>
-        <p class="mcard-desc">Earned by completing hands-on Google Cloud skill assessments and quest labs.</p>
-      </div>
-
-      <div class="mcard" style="--mc-bg:rgba(251,188,4,.18)">
+        <div class="mcard-title">The Basics of Google Cloud Compute</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/702" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
         <div class="mcard-head">
-          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#b08100">Arcade & Trivia</span>
-          <span class="mcard-pts">+5 pts</span>
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 2</span>
+          <span class="mcard-pts">+10 pts</span>
         </div>
-        <div class="mcard-title">Trivia & Game Badges</div>
-        <p class="mcard-desc">Earned from Google Cloud Arcade game milestones, trivia levels, and challenges.</p>
-      </div>
-
-      <div class="mcard" style="--mc-bg:rgba(52,168,83,.14)">
+        <div class="mcard-title">Configure Service Accounts and IAM Roles for Google Cloud</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/700" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
         <div class="mcard-head">
-          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--g)">Course Modules</span>
-          <span class="mcard-pts">+3 pts</span>
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 3</span>
+          <span class="mcard-pts">+10 pts</span>
         </div>
-        <div class="mcard-title">Course Badges</div>
-        <p class="mcard-desc">Earned upon completing foundational learning courses and module paths.</p>
-      </div>
+        <div class="mcard-title">Implement Speech and Language Solutions with Pre-trained APIs</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/1426" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 4</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Develop AI-Powered Prototypes in Google AI Studio</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/633" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 5</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Analyze Images with the Cloud Vision API</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/638" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 6</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Build a Website on Google Cloud</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/1586" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 7</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Create Your First Gemini Enterprise Application</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/658" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 8</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Store, Process, and Manage Data on Google Cloud - Console</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/756" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 9</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Using the Google Cloud Speech API</div>
+      </a>
+      <a class="mcard" href="https://www.skills.google/course_templates/959" target="_blank" rel="noopener noreferrer" style="--mc-bg:rgba(66,133,244,.12)">
+        <div class="mcard-head">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--b)">Skill Badge 10</span>
+          <span class="mcard-pts">+10 pts</span>
+        </div>
+        <div class="mcard-title">Explore Generative AI in Agent Platform</div>
+      </a>
     </div>
 
     <div class="metrics-rules">
       <span class="metrics-rule">⏱️ <b>Eligibility:</b> Badges earned after Oct 13 midnight count for points</span>
-      <span class="metrics-rule">🏆 <b>Rank order:</b> 1st to complete all badges takes #1; subsequent finishers ordered alphabetically</span>
+      <span class="metrics-rule">🏆 <b>Rank order:</b> 1st to complete all 10 syllabus badges takes #1; subsequent finishers ordered alphabetically</span>
       <span class="metrics-rule">🔁 <b>No duplicates:</b> Each unique badge is counted once</span>
     </div>
   </section>

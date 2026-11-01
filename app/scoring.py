@@ -1,5 +1,9 @@
 """Scoring rules (from scoring.yaml) and ranking.
 
+Syllabus: when ``syllabus`` is set, only badges for those courses count and each earns the points
+listed for it (0 is allowed: the badge still counts as completed but adds no points). A badge is
+matched by the ``/course_templates/<id>`` it links to, or by title when the profile gives no link.
+
 Dates: a badge's ``earned_date`` is the calendar date printed on the profile, which Google shows in
 US Eastern time (EDT/EST). It is compared as-is with ``program_start`` / ``program_end`` (both
 inclusive); no timezone conversion is done, so what students see on their profile is what counts.
@@ -9,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
@@ -24,6 +29,18 @@ REASON_UNKNOWN_DATE = "unknown_date"
 REASON_DEPRECATED = "deprecated"
 REASON_ZERO_POINTS = "zero_points"
 REASON_DUPLICATE = "duplicate"
+REASON_NOT_IN_SYLLABUS = "not_in_syllabus"
+
+TEMPLATE_RE = re.compile(r"/course_templates/(\d+)")
+
+
+def template_id(path_or_url: str | None) -> str | None:
+    match = TEMPLATE_RE.search(path_or_url or "")
+    return match.group(1) if match else None
+
+
+def normalize_title(title: str | None) -> str:
+    return re.sub(r"\s+", " ", title or "").strip().lower()
 
 
 def _as_date(value: Any) -> date | None:
@@ -32,6 +49,23 @@ def _as_date(value: Any) -> date | None:
     if isinstance(value, date):
         return value
     return date.fromisoformat(str(value))
+
+
+@dataclass(frozen=True)
+class SyllabusCourse:
+    template_id: str
+    title: str
+    points: int
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "SyllabusCourse":
+        tid = template_id(str(data.get("url") or "")) or str(data.get("template_id") or "").strip()
+        if not tid:
+            raise ValueError(f"syllabus course needs a url or template_id: {data!r}")
+        points = int(data.get("points") or 0)
+        if points < 0:
+            raise ValueError("syllabus points must be >= 0")
+        return cls(template_id=tid, title=str(data.get("title") or "").strip(), points=points)
 
 
 @dataclass(frozen=True)
@@ -47,6 +81,25 @@ class ScoringConfig:
     max_points_per_member: int | None = None
     team_aggregation: str = "sum"
     min_team_members: int = 1
+    syllabus: tuple[SyllabusCourse, ...] = ()
+
+    @property
+    def completion_target(self) -> int | None:
+        """Badge count that means "completed everything": target_badges, else the syllabus size."""
+        if self.target_badges is not None:
+            return self.target_badges
+        return len(self.syllabus) or None
+
+    def syllabus_match(self, badge: "BadgeLike") -> SyllabusCourse | None:
+        tid = template_id(getattr(badge, "source_path", None))
+        title = normalize_title(badge.title)
+        for course in self.syllabus:
+            if tid is not None:
+                if course.template_id == tid:
+                    return course
+            elif course.title and normalize_title(course.title) == title:
+                return course
+        return None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "ScoringConfig":
@@ -68,6 +121,7 @@ class ScoringConfig:
             max_points_per_member=int(cap) if cap not in (None, "") else None,
             team_aggregation=aggregation,
             min_team_members=int(data.get("min_team_members") or 1),
+            syllabus=tuple(SyllabusCourse.from_dict(c) for c in (data.get("syllabus") or [])),
         )
 
     @classmethod
@@ -89,6 +143,9 @@ class ScoringConfig:
             "max_points_per_member": self.max_points_per_member,
             "team_aggregation": self.team_aggregation,
             "min_team_members": self.min_team_members,
+            "syllabus": [
+                {"template_id": c.template_id, "title": c.title, "points": c.points} for c in self.syllabus
+            ],
         }
 
     def hash(self) -> str:
@@ -102,6 +159,7 @@ class BadgeLike(Protocol):
     category: str
     deprecated: bool
     earned_date: date | None
+    # Optional: source_path ("/course_templates/<id>") is used for syllabus matching when present.
 
 
 @dataclass
@@ -121,6 +179,11 @@ def evaluate_badge(badge: BadgeLike, cfg: ScoringConfig) -> BadgeVerdict:
             return BadgeVerdict(False, 0, REASON_AFTER_END)
     if badge.deprecated and not cfg.count_deprecated:
         return BadgeVerdict(False, 0, REASON_DEPRECATED)
+    if cfg.syllabus:
+        course = cfg.syllabus_match(badge)
+        if course is None:
+            return BadgeVerdict(False, 0, REASON_NOT_IN_SYLLABUS)
+        return BadgeVerdict(True, course.points, None)
     if badge.title in cfg.badge_overrides:
         points = cfg.badge_overrides[badge.title]
     else:
@@ -157,6 +220,7 @@ def score_member(
     points = {c: 0 for c in CATEGORIES}
     counted: list[tuple[date | None, int]] = []
     seen: set[str] = set()
+    seen_courses: set[str] = set()
     skill = 0
     for badge in badges:
         if badge.badge_id in seen:
@@ -165,6 +229,12 @@ def score_member(
         verdict = evaluate_badge(badge, cfg)
         if not verdict.counted:
             continue
+        if cfg.syllabus:
+            # The same syllabus course earned twice (two badge ids) counts once.
+            course = cfg.syllabus_match(badge)
+            if course.template_id in seen_courses:
+                continue
+            seen_courses.add(course.template_id)
         category = badge.category if badge.category in counts else "other"
         counts[category] += 1
         points[category] += verdict.points
@@ -176,13 +246,15 @@ def score_member(
     capped = cfg.max_points_per_member is not None and total > cfg.max_points_per_member
     final = min(total, cfg.max_points_per_member) if capped else total
 
-    # "Reached final score" = date the running total first hit the final score.
+    # "Reached final score" = date the running total first hit the final score. Uncapped, that is the
+    # last counted badge (a 0-point syllabus badge still has to be earned to complete the set).
     reached_at: date | None = None
-    if final > 0:
+    if counted:
         running = 0
-        for earned, pts in sorted(counted, key=lambda x: (x[0] is None, x[0] or date.max)):
+        ordered = sorted(counted, key=lambda x: (x[0] is None, x[0] or date.max))
+        for i, (earned, pts) in enumerate(ordered):
             running += pts
-            if running >= final:
+            if running >= final and (capped or i == len(ordered) - 1):
                 reached_at = earned
                 break
 
@@ -294,7 +366,7 @@ def rank_entries(entries: Iterable[Entry], cfg: ScoringConfig | None = None) -> 
     if not entries_list:
         return []
 
-    target = cfg.target_badges if cfg else None
+    target = cfg.completion_target if cfg else None
     if target is not None:
         completed = [e for e in entries_list if e.counted_badges >= target and e.score > 0]
     else:

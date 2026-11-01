@@ -3,7 +3,7 @@
 
 program_start: 2026-10-14        # "YYYY-MM-DD": badges earned before this date don't count (badges after Oct 13 midnight)
 program_end: null          # optional end date, inclusive
-target_badges: null        # optional: badge count for "all badges completed" (if null, highest score tier is used)
+target_badges: null        # optional: badge count for "all badges completed" (if null: syllabus size, else highest score tier)
 points:
   skill_badge: 10
   course_badge: 3
@@ -14,3 +14,18 @@ badge_overrides: {}         # exact title -> points; wins over category
 max_points_per_member: null # optional cap
 team_aggregation: sum       # sum | average (average over members with a working link)
 min_team_members: 1
+
+# Syllabus: when set, ONLY these courses' badges count (any other badge scores 0) and each earns the
+# points listed here (10 per badge). Matched by the course_templates id in the url.
+# Source: the campaign syllabus sheet.
+syllabus:
+  - {title: "The Basics of Google Cloud Compute", url: "https://www.skills.google/course_templates/754", points: 10}
+  - {title: "Configure Service Accounts and IAM Roles for Google Cloud", url: "https://www.skills.google/course_templates/702", points: 10}
+  - {title: "Implement Speech and Language Solutions with Pre-trained APIs", url: "https://www.skills.google/course_templates/700", points: 10}
+  - {title: "Develop AI-Powered Prototypes in Google AI Studio", url: "https://www.skills.google/course_templates/1426", points: 10}
+  - {title: "Analyze Images with the Cloud Vision API", url: "https://www.skills.google/course_templates/633", points: 10}
+  - {title: "Build a Website on Google Cloud", url: "https://www.skills.google/course_templates/638", points: 10}
+  - {title: "Create Your First Gemini Enterprise Application", url: "https://www.skills.google/course_templates/1586", points: 10}
+  - {title: "Store, Process, and Manage Data on Google Cloud - Console", url: "https://www.skills.google/course_templates/658", points: 10}
+  - {title: "Using the Google Cloud Speech API", url: "https://www.skills.google/course_templates/756", points: 10}
+  - {title: "Explore Generative AI in Agent Platform", url: "https://www.skills.google/course_templates/959", points: 10}
