@@ -62,7 +62,7 @@ This platform automates the entire lifecycle:
 
 Scoring is completely decoupled from application code and managed via [`scoring.yaml`](scoring.yaml):
 
-Only the **10 syllabus skill badges** listed under `syllabus:` in `scoring.yaml` count. Each earns **10 points**; badges from any other course (or games/trivia) earn **0**. Badges are matched by their `course_templates/<id>`, and each course counts once.
+Only the **10 syllabus skill badges** listed under `syllabus:` in `scoring.yaml` count. Each earns **10 points** (capped at **100 max points** per participant); badges from any other course (or games/trivia) earn **0**. Badges are matched by their `course_templates/<id>`, and each course counts once.
 
 | # | Syllabus Course | Points |
 | :---: | :--- | :---: |

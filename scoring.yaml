@@ -11,7 +11,7 @@ points:
   other: 0
 count_deprecated: true      # false = deprecated badges score 0
 badge_overrides: {}         # exact title -> points; wins over category
-max_points_per_member: null # optional cap
+max_points_per_member: 100 # cap to 100 points maximum per participant
 team_aggregation: sum       # sum | average (average over members with a working link)
 min_team_members: 1
 
