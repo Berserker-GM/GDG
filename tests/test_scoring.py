@@ -174,6 +174,7 @@ def test_repo_scoring_yaml_loads():
     assert c.team_aggregation == "sum"
     assert len(c.syllabus) == 10
     assert c.completion_target == 10
+    assert c.max_points_per_member == 100
     assert {course.points for course in c.syllabus} == {10}
 
 
