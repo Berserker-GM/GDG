@@ -13,7 +13,7 @@ from sqlalchemy.orm import selectinload
 from app.collectors import Collector, ProfileRef, ProfileResult, build_collectors
 from app.config import Settings, get_settings
 from app.db import session_scope, utcnow
-from app.leaderboard import compute_entries, has_supported_link
+from app.leaderboard import compute_entries, has_supported_link, member_score
 from app.models import (
     FETCH_ERROR,
     OK,
@@ -116,14 +116,35 @@ def apply_result(member_id: int, result: ProfileResult) -> None:
             member.is_stale = True
 
 
-def eligible_profiles(collectors: dict[str, Collector]) -> list[ProfileRef]:
+def is_maxed(member: Member, cfg: ScoringConfig) -> bool:
+    """True when the member's last fetch succeeded and their stored score already hits the cap."""
+    cap = cfg.max_points_per_member
+    if cap is None or member.last_success_at is None or member.is_stale:
+        return False
+    return member_score(member, cfg).score >= cap
+
+
+def eligible_profiles(
+    collectors: dict[str, Collector],
+    cfg: ScoringConfig | None = None,
+    skip_maxed: bool = False,
+) -> tuple[list[ProfileRef], int]:
+    """Profiles to fetch this run, and how many were skipped because they are already at max points."""
+    skipping = skip_maxed and cfg is not None and cfg.max_points_per_member is not None
     with session_scope() as session:
-        members = session.scalars(select(Member).where(Member.active.is_(True)).order_by(Member.id))
-        return [
-            ProfileRef(member_id=m.id, url=m.profile_url, profile_id=m.profile_id, platform=m.platform)
-            for m in members
-            if has_supported_link(m) and m.platform in collectors and m.profile_url
-        ]
+        query = select(Member).where(Member.active.is_(True)).order_by(Member.id)
+        if skipping:
+            query = query.options(selectinload(Member.badges))
+        refs: list[ProfileRef] = []
+        skipped = 0
+        for m in session.scalars(query):
+            if not (has_supported_link(m) and m.platform in collectors and m.profile_url):
+                continue
+            if skipping and is_maxed(m, cfg):
+                skipped += 1
+                continue
+            refs.append(ProfileRef(member_id=m.id, url=m.profile_url, profile_id=m.profile_id, platform=m.platform))
+        return refs, skipped
 
 
 async def execute_run(
@@ -143,7 +164,7 @@ async def execute_run(
             run.scoring_hash = cfg.hash()
             run.scoring_snapshot = cfg.snapshot()
 
-        refs = eligible_profiles(collectors)
+        refs, skipped = eligible_profiles(collectors, cfg, settings.skip_maxed_members)
         succeeded = 0
         badges_seen = 0
         other_badges = 0
@@ -184,7 +205,8 @@ async def execute_run(
                 task.cancel()
             await asyncio.gather(*tasks, return_exceptions=True)
         attempted = len(refs)
-        ratio = succeeded / attempted if attempted else 0.0
+        # Everyone maxed (nothing to fetch) is a healthy run: their stored scores are final.
+        ratio = succeeded / attempted if attempted else (1.0 if skipped else 0.0)
         other_ratio = other_badges / badges_seen if badges_seen else 0.0
 
         with session_scope() as session:
@@ -211,10 +233,13 @@ async def execute_run(
                     )
                 )
             notes = []
+            if skipped:
+                notes.append(f"Skipped {skipped} member(s) already at max points.")
+                log.info("Run %s: skipped %s member(s) already at max points", run_id, skipped)
             if failures:
                 notes.append("Failures: " + ", ".join(f"{k}={v}" for k, v in sorted(failures.items())))
             rejections = []
-            if not attempted:
+            if not attempted and not skipped:
                 rejections.append("No eligible profiles to fetch.")
             elif ratio < settings.min_success_ratio:
                 rejections.append(
@@ -242,6 +267,7 @@ async def execute_run(
                 "attempted": attempted,
                 "succeeded": succeeded,
                 "failed": attempted - succeeded,
+                "skipped_maxed": skipped,
                 "success_ratio": run.success_ratio,
                 "badges_seen": badges_seen,
                 "other_badges": other_badges,

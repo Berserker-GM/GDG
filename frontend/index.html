@@ -995,7 +995,7 @@ async function loadLeaderboard() {
   let totalParticipants = 0;
   try {
     const [resLb, resStatus] = await Promise.all([
-      fetch('/api/leaderboard?limit=50'),
+      fetch('/api/leaderboard?limit=100'),
       fetch('/api/leaderboard/status')
     ]);
     if (!resLb.ok) throw new Error('API request failed');

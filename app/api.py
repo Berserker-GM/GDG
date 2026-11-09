@@ -193,7 +193,7 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
 
     # ---------------------------------------------------------------- public
     @app.get("/api/leaderboard")
-    def leaderboard(limit: int = Query(50, ge=1, le=500), session: Session = Depends(get_session)):
+    def leaderboard(limit: int = Query(100, ge=1, le=500), session: Session = Depends(get_session)):
         run = _latest_published(session)
         if run is None:
             return {"run_id": None, "published_at": None, "mode": None, "total_participants": 0, "entries": []}
