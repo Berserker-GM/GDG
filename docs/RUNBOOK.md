@@ -25,7 +25,7 @@ Contents:
 
 - Students submit their **Google Skills public profile link** through a Google Form. We download the responses as `.xlsx` and import them.
 - Once a day the server visits every public profile, reads the badges, and scores them using the rules in `scoring.yaml`.
-- It ranks students (or teams, if a team sheet was uploaded) and publishes the top 50.
+- It ranks students (or teams, if a team sheet was uploaded) and publishes the top 100.
 - The website at `/` shows the latest published leaderboard. The API under `/api/...` serves the same data and never shows emails or USNs.
 - It runs as one Docker container on Render, with its data in a Supabase Postgres database.
 
@@ -55,11 +55,12 @@ All settings are environment variables, read by `app/config.py`. Locally they co
 | `CONTACT_EMAIL` | Put into the User-Agent so Google can contact us about our scraping. Not secret, but must be real. | `organizers@example.edu` | `gdg-skilllab@yourcollege.edu` | **Yes**: a real, monitored address |
 | `USER_AGENT` | Full override of the User-Agent header. Normally leave unset. | `SkillLabLeaderboard/1.0 (+mailto:<CONTACT_EMAIL>)` | | No |
 | `LEADERBOARD_MODE` | `auto` = teams if any student has a team, otherwise individuals; `team`; or `solo`. | `auto` | `team` | No |
-| `LEADERBOARD_SIZE` | How many entries each run stores and shows. | `50` | `50` | No |
+| `LEADERBOARD_SIZE` | How many entries each run stores and shows. | `100` | `100` | No |
 | `MIN_SUCCESS_RATIO` | Reject a run if fewer than this share of profiles fetched OK. | `0.6` | `0.6` | No |
 | `MAX_OTHER_BADGE_RATIO` | Reject a run if more than this share of badges is category `other`. | `0.5` | `0.5` | No |
 | `SCORING_CONFIG` | Path to the scoring rules file. | `scoring.yaml` | `scoring.yaml` | No |
 | `RUN_LOCK_TIMEOUT_HOURS` | A run still `running` after this long is treated as abandoned. | `2` | `2` | No |
+| `SKIP_MAXED_MEMBERS` | Skip fetching members already at `max_points_per_member` with a fresh, successful last fetch; they keep their stored score. | `true` | `true` | No |
 | `FETCH_CONCURRENCY` | Profiles fetched in parallel. Keep it low; be polite to Google. | `3` | `3` | No |
 | `FETCH_DELAY_SECONDS` | Pause after each request. | `1.5` | `1.5` | No |
 | `FETCH_TIMEOUT_SECONDS` | Per-request timeout. | `20` | `20` | No |

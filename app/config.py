@@ -26,11 +26,12 @@ def _env(name: str, default: str) -> str:
 class Settings:
     database_url: str = "sqlite:///data/leaderboard.db"
     leaderboard_mode: str = "auto"
-    leaderboard_size: int = 50
+    leaderboard_size: int = 100
     min_success_ratio: float = 0.6
     max_other_badge_ratio: float = 0.5
     scoring_config: str = "scoring.yaml"
     run_lock_timeout_hours: float = 2.0
+    skip_maxed_members: bool = True
 
     contact_email: str = "organizers@example.edu"
     user_agent: str = ""
@@ -57,11 +58,12 @@ class Settings:
         return cls(
             database_url=_env("DATABASE_URL", cls.database_url),
             leaderboard_mode=mode,
-            leaderboard_size=int(_env("LEADERBOARD_SIZE", "50")),
+            leaderboard_size=int(_env("LEADERBOARD_SIZE", "100")),
             min_success_ratio=float(_env("MIN_SUCCESS_RATIO", "0.6")),
             max_other_badge_ratio=float(_env("MAX_OTHER_BADGE_RATIO", "0.5")),
             scoring_config=_env("SCORING_CONFIG", cls.scoring_config),
             run_lock_timeout_hours=float(_env("RUN_LOCK_TIMEOUT_HOURS", "2")),
+            skip_maxed_members=_bool(os.getenv("SKIP_MAXED_MEMBERS"), True),
             contact_email=contact,
             user_agent=_env("USER_AGENT", f"SkillLabLeaderboard/1.0 (+mailto:{contact})"),
             fetch_concurrency=max(1, int(_env("FETCH_CONCURRENCY", "3"))),

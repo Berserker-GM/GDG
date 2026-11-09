@@ -131,7 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_scrape_one)
 
     p = sub.add_parser("leaderboard", help="Print the current published leaderboard")
-    p.add_argument("--limit", type=int, default=50)
+    p.add_argument("--limit", type=int, default=100)
     p.set_defaults(func=cmd_leaderboard)
 
     p = sub.add_parser("link-report", help="CSV of every member's link status")

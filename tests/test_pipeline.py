@@ -339,3 +339,51 @@ async def test_aborted_run_cancels_pending_fetches(settings, tmp_path, monkeypat
         run = s.scalars(select(Run).order_by(Run.id.desc())).first()
         assert run.status == "failed"
     assert not pipeline.is_running_in_process()
+
+
+def _cap_scoring(settings, cap=20):
+    from pathlib import Path
+
+    Path(settings.scoring_config).write_text(
+        "points: {skill_badge: 10, course_badge: 3, game_badge: 5, other: 0}\n"
+        f"max_points_per_member: {cap}\n",
+        encoding="utf-8",
+    )
+
+
+async def test_maxed_member_is_skipped_and_keeps_score(settings, tmp_path):
+    _cap_scoring(settings)
+    seed(tmp_path, n=2)
+    pages = {
+        UUIDS[0]: page("S0", ("1", "Skill A", "Oct 1, 2026", *SKILL), ("2", "Skill B", "Oct 2, 2026", *SKILL)),
+        UUIDS[1]: page("S1", ("3", "Skill C", "Oct 3, 2026", *SKILL)),
+    }
+    first = await run_pipeline("test", collectors_for(pages, settings)())
+    assert first["status"] == "published" and first["skipped_maxed"] == 0
+
+    pages[UUIDS[0]] = 503  # would mark stale if it were fetched
+    summary = await run_pipeline("test", collectors_for(pages, settings)())
+    assert summary["status"] == "published"
+    assert summary["skipped_maxed"] == 1
+    assert summary["attempted"] == 1 and summary["succeeded"] == 1 and summary["failed"] == 0
+    assert "Skipped 1 member(s) already at max points." in summary["notes"]
+    with db.session_scope() as s:
+        m = s.scalars(select(Member).where(Member.usn == "U0")).one()
+        assert m.is_stale is False
+        standings = s.scalars(
+            select(Standing).where(Standing.run_id == summary["run_id"]).order_by(Standing.rank)
+        ).all()
+        assert [(st.name, st.score) for st in standings] == [("Student 0", 20), ("Student 1", 10)]
+
+
+async def test_all_members_maxed_still_publishes(settings, tmp_path):
+    _cap_scoring(settings)
+    seed(tmp_path, n=1)
+    pages = {UUIDS[0]: page("S0", ("1", "Skill A", "Oct 1, 2026", *SKILL), ("2", "Skill B", "Oct 2, 2026", *SKILL))}
+    await run_pipeline("test", collectors_for(pages, settings)())
+
+    summary = await run_pipeline("test", collectors_for(pages, settings)())
+    assert summary["status"] == "published"
+    assert summary["attempted"] == 0 and summary["skipped_maxed"] == 1
+    assert summary["success_ratio"] == 1.0
+    assert summary["entries"] == 1
