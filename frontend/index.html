@@ -231,6 +231,11 @@ h1{font-family:var(--display);font-weight:800;font-size:clamp(58px,9.5vw,138px);
 .btn{border:var(--bd);background:var(--y);font-weight:700;border-radius:14px;padding:11px 20px;font-size:16px;box-shadow:4px 4px 0 var(--k);transition:transform .12s,box-shadow .12s}
 .btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--k)}
 .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--k)}
+.pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 16px;margin-top:22px}
+.pager[hidden]{display:none}
+.pager .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:4px 4px 0 var(--k)}
+.pager-label{font-weight:700;font-size:15px;text-align:center}
+@media(max-width:480px){.pager .btn{flex:1 1 40%;padding:10px 12px;font-size:15px}.pager-label{order:-1;flex-basis:100%}}
 .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--k);color:#fff;border:2.5px solid #fff;padding:12px 18px;border-radius:14px;font-weight:700;opacity:0;pointer-events:none;transition:all .25s;z-index:80}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 footer{margin:80px 0 40px;padding:22px 26px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;font-weight:500;font-size:14px}
@@ -436,6 +441,11 @@ footer img{width:44px}
           <div class="chips" id="chips" role="group" aria-label="Filter by department"></div>
           <div class="count" id="count"></div>
           <div class="list" id="list"></div>
+          <div class="pager" id="pager" hidden>
+            <button class="btn" id="pagePrev" type="button">&larr; Previous 50</button>
+            <span class="pager-label" id="pageLabel" aria-live="polite"></span>
+            <button class="btn" id="pageNext" type="button">Next 50 &rarr;</button>
+          </div>
         </div>
         <div id="deptPane" hidden><div class="box card" id="deptFull"></div></div>
       </div>
@@ -556,6 +566,33 @@ let allTeams = [];
 let currentMode = 'solo';
 let maxScore = 1;
 let filters = { q: '', dept: 'all', year: 'all' };
+const PAGE_SIZE = 50;
+let page = 1;
+
+// Clamp `page` to the filtered rows, update the pager, and return the rows for the current page.
+function pageSlice(rows) {
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  page = Math.min(Math.max(1, page), pages);
+  const start = (page - 1) * PAGE_SIZE;
+  const visible = rows.slice(start, page * PAGE_SIZE);
+  $('#pager').hidden = rows.length <= PAGE_SIZE;
+  $('#pagePrev').disabled = page <= 1;
+  $('#pageNext').disabled = page >= pages;
+  $('#pageLabel').textContent = rows.length
+    ? `Showing ${start + 1}–${start + visible.length} of ${rows.length}`
+    : '';
+  return visible;
+}
+
+function renderRows() {
+  if (currentMode === 'team') renderTeamRows(); else renderStudentRows();
+}
+
+function goToPage(n) {
+  page = n;
+  renderRows();
+  $('#list').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 let studentBadgesCache = {};
 let latestFeedEvents = [];
 let lastFocus = null, toastT;
@@ -701,6 +738,7 @@ function renderChips() {
   `).join('');
   document.querySelectorAll('.chip').forEach(c => c.onclick = () => {
     filters.dept = c.dataset.d;
+    page = 1;
     renderChips();
     if (currentMode === 'team') {
       renderTeamRows();
@@ -739,12 +777,13 @@ function renderStudentRows() {
   });
 
   $('#count').textContent = rows.length === 1 ? '1 student' : rows.length + ' students';
+  const visible = pageSlice(rows);
   if (!rows.length) {
     $('#list').innerHTML = `<div class="box empty"><b>No one matches that</b>Try searching a different name, or clear the department and year filters.</div>`;
     return;
   }
 
-  $('#list').innerHTML = rows.map(s => {
+  $('#list').innerHTML = visible.map(s => {
     const d = DEPTS[s.dept] || { c: '#4285f4', name: s.dept };
     const r = s.rank;
     const rk = rankLabel(s.rank);
@@ -769,8 +808,8 @@ function renderStudentRows() {
     `;
   }).join('');
 
-  document.querySelectorAll('.row').forEach(r => r.onclick = () => openModal(+r.dataset.id));
-  rows.forEach(s => {
+  $('#list').querySelectorAll('.row').forEach(r => r.onclick = () => openModal(+r.dataset.id));
+  visible.forEach(s => {
     if (s.counted_badges > 0) renderStudentThumbs(s, `#rowThumbs-${s.id}`);
   });
 }
@@ -783,12 +822,13 @@ function renderTeamRows() {
   });
 
   $('#count').textContent = rows.length === 1 ? '1 team' : rows.length + ' teams';
+  const visible = pageSlice(rows);
   if (!rows.length) {
     $('#list').innerHTML = `<div class="box empty"><b>No teams found</b>Try another search.</div>`;
     return;
   }
 
-  $('#list').innerHTML = rows.map(t => {
+  $('#list').innerHTML = visible.map(t => {
     const r = t.rank;
     const rk = rankLabel(t.rank);
     const pct = maxScore > 0 ? (t.score / maxScore * 100) : 0;
@@ -973,12 +1013,16 @@ function setTab(dept) {
   $('#tabDept').setAttribute('aria-selected', dept);
   $('#studentsPane').hidden = dept;
   $('#deptPane').hidden = !dept;
+  page = 1;
+  if (!dept && (allStudents.length || allTeams.length)) renderRows();
 }
 
 $('#tabAll').onclick = () => setTab(false);
 $('#tabDept').onclick = () => setTab(true);
-$('#q').addEventListener('input', e => { filters.q = e.target.value; renderStudentRows(); });
-$('#yearSel').addEventListener('change', e => { filters.year = e.target.value; renderStudentRows(); });
+$('#q').addEventListener('input', e => { filters.q = e.target.value; page = 1; renderStudentRows(); });
+$('#yearSel').addEventListener('change', e => { filters.year = e.target.value; page = 1; renderStudentRows(); });
+$('#pagePrev').onclick = () => goToPage(page - 1);
+$('#pageNext').onclick = () => goToPage(page + 1);
 $('#finderInput').addEventListener('input', renderFinder);
 $('#closeModal').onclick = closeModal;
 $('#modal').addEventListener('click', e => { if (e.target === $('#modal')) closeModal(); });
