@@ -32,6 +32,9 @@ class Settings:
     scoring_config: str = "scoring.yaml"
     run_lock_timeout_hours: float = 2.0
     skip_maxed_members: bool = True
+    db_pool_size: int = 3
+    db_max_overflow: int = 2
+    db_pool_timeout: float = 30.0
 
     contact_email: str = "organizers@example.edu"
     user_agent: str = ""
@@ -64,6 +67,9 @@ class Settings:
             scoring_config=_env("SCORING_CONFIG", cls.scoring_config),
             run_lock_timeout_hours=float(_env("RUN_LOCK_TIMEOUT_HOURS", "2")),
             skip_maxed_members=_bool(os.getenv("SKIP_MAXED_MEMBERS"), True),
+            db_pool_size=max(1, int(_env("DB_POOL_SIZE", "3"))),
+            db_max_overflow=max(0, int(_env("DB_MAX_OVERFLOW", "2"))),
+            db_pool_timeout=float(_env("DB_POOL_TIMEOUT", "30")),
             contact_email=contact,
             user_agent=_env("USER_AGENT", f"SkillLabLeaderboard/1.0 (+mailto:{contact})"),
             fetch_concurrency=max(1, int(_env("FETCH_CONCURRENCY", "3"))),

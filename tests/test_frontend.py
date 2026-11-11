@@ -104,3 +104,12 @@ console.log(JSON.stringify({
         "https://www.skills.google",
         "https://www.skills.google",
     ]
+
+
+def test_badges_loaded_in_one_request(html):
+    # One /api/leaderboard/badges call fills thumbnails and the feed; no per-member fetch on page load.
+    assert "fetch('/api/leaderboard/badges')" in html
+    assert html.count("fetch(`/api/members/") == 1  # only openModal
+    thumbs = html[html.index("function renderStudentThumbs"):html.index("function renderStudentRows")]
+    assert "fetch(" not in thumbs
+    assert "topScorers.map" not in html
