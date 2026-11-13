@@ -594,6 +594,7 @@ function goToPage(n) {
   $('#list').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 let studentBadgesCache = {};
+let memberDetailCache = {};  // full badge details per member, fetched once when their modal opens
 let latestFeedEvents = [];
 let lastFocus = null, toastT;
 
@@ -755,16 +756,8 @@ function renderStudentThumbs(item, targetSelector) {
     const list = studentBadgesCache[item.id].slice(0, 3);
     if (!list.length) { el.innerHTML = ''; return; }
     el.innerHTML = list.map(b => `<img src="${safeImageUrl(b.image_url)}" alt="${escapeHtml(b.title)}" title="${escapeHtml(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
-  } else if (item.counted_badges > 0) {
-    fetch(`/api/members/${item.id}`).then(r => r.json()).then(data => {
-      const bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
-      studentBadgesCache[item.id] = bList;
-      const list = bList.slice(0, 3);
-      if (list.length) {
-        el.innerHTML = list.map(b => `<img src="${safeImageUrl(b.image_url)}" alt="${escapeHtml(b.title)}" title="${escapeHtml(b.title)}" loading="lazy" onerror="this.outerHTML='<span>GC</span>'">`).join('');
-      }
-    }).catch(() => {});
   }
+  // No per-row fetch: thumbnails come from the single /api/leaderboard/badges response.
 }
 
 function renderStudentRows() {
@@ -983,11 +976,14 @@ async function openModal(id) {
   $('#closeModal').focus();
 
   try {
-    const res = await fetch(`/api/members/${s.id}`);
-    if (!res.ok) throw new Error('Failed to load member');
-    const data = await res.json();
-    const bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
-    studentBadgesCache[s.id] = bList;
+    let bList = memberDetailCache[s.id];
+    if (!bList) {
+      const res = await fetch(`/api/members/${s.id}`);
+      if (!res.ok) throw new Error('Failed to load member');
+      const data = await res.json();
+      bList = (data.counted_badges || []).concat(data.uncounted_badges || []);
+      memberDetailCache[s.id] = bList;
+    }
     $('#modalCount').textContent = bList.length;
     renderBadges(bList);
   } catch (err) {
@@ -1094,14 +1090,15 @@ async function loadLeaderboard() {
     maxScore = allStudents.length ? Math.max(...allStudents.map(s => s.score), 1) : 1;
     buildDynamicDepts(allStudents);
 
-    const topScorers = allStudents.filter(s => s.counted_badges > 0);
+    // One request for every published member's badges (row thumbnails + recent-badges feed).
     latestFeedEvents = [];
-    await Promise.all(topScorers.map(async s => {
-      try {
-        const mres = await fetch(`/api/members/${s.id}`);
-        if (mres.ok) {
-          const mdata = await mres.json();
-          const badges = (mdata.counted_badges || []).concat(mdata.uncounted_badges || []);
+    try {
+      const bres = await fetch('/api/leaderboard/badges');
+      if (bres.ok) {
+        const bdata = await bres.json();
+        const byMember = bdata.members || {};
+        allStudents.forEach(s => {
+          const badges = byMember[s.id] || [];
           studentBadgesCache[s.id] = badges;
           badges.forEach(b => {
             latestFeedEvents.push({
@@ -1111,9 +1108,11 @@ async function loadLeaderboard() {
               date: b.earned_date ? b.earned_date : 'Verified'
             });
           });
-        }
-      } catch (e) {}
-    }));
+        });
+        // Newest first ("Latest badges"); undated ones last.
+        latestFeedEvents.sort((a, b) => (b.date === 'Verified' ? '' : b.date).localeCompare(a.date === 'Verified' ? '' : a.date));
+      }
+    } catch (e) {}
 
     renderHero(data.published_at, totalParticipants);
     renderPodium();

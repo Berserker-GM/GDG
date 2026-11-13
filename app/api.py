@@ -11,7 +11,6 @@ import shutil
 import tempfile
 from collections import Counter
 from contextlib import asynccontextmanager
-from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Iterator
@@ -23,12 +22,12 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app import db
+from app import cache, db
 from app.collectors import Collector
 from app.config import get_settings
 from app.importer import FormImportError, import_form
 from app.leaderboard import active_members, badge_detail, member_score, resolve_mode, sorted_badges
-from app.models import RUN_PUBLISHED, RUN_RUNNING, Member, Run, Standing, Team
+from app.models import RUN_PUBLISHED, RUN_RUNNING, Badge, Member, Run, Standing, Team
 from app.pipeline import RunInProgress, begin_run, execute_run, is_running_in_process
 from app.scoring import ScoringConfig, team_entry
 
@@ -44,7 +43,7 @@ def iso(value: datetime | None) -> str | None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
-    db.init_db()
+    await asyncio.to_thread(db.init_db_with_retry)
     scheduler = None
     if settings.enable_scheduler:
         from app.scheduler import create_scheduler
@@ -144,21 +143,76 @@ def _run_with_standings(run: Run, limit: int) -> dict[str, Any]:
     }
 
 
-@dataclass
-class PublishedScores:
-    run_id: int | None
-    teams: dict[int, tuple[int | None, float]] = field(default_factory=dict)  # id -> (rank, score)
-    members: dict[int, tuple[int | None, float]] = field(default_factory=dict)
+PUBLIC_CACHE_CONTROL = "public, max-age=300"
 
 
-def _latest_published(session: Session) -> Run | None:
+def _latest_published(session: Session, with_standings: bool = False) -> Run | None:
+    query = select(Run).where(Run.status == RUN_PUBLISHED).order_by(Run.published_at.desc(), Run.id.desc()).limit(1)
+    if with_standings:
+        query = query.options(selectinload(Run.standings))
+    return session.scalars(query).first()
+
+
+def _latest_published_id(session: Session) -> int | None:
+    """Cheap: reads one id, no standings."""
+    return session.scalar(
+        select(Run.id).where(Run.status == RUN_PUBLISHED).order_by(Run.published_at.desc(), Run.id.desc()).limit(1)
+    )
+
+
+def _published_member_ids(standings: list[Standing]) -> list[int]:
+    ids: list[int] = []
+    for s in standings:
+        if s.entity_type == "member":
+            ids.append(s.entity_id)
+        else:
+            ids.extend(m["member_id"] for m in (s.breakdown or {}).get("members", []))
+    return ids
+
+
+def _leaderboard_badges(session: Session, run_id: int, cfg: ScoringConfig) -> dict[str, Any]:
+    """Badges of every member in a published run: one query for the standings, one for all their badges."""
+    standings = session.scalars(select(Standing).where(Standing.run_id == run_id)).all()
+    ids = _published_member_ids(standings)
+    out: dict[int, list[dict[str, Any]]] = {i: [] for i in ids}
+    if ids:
+        for b in session.scalars(select(Badge).where(Badge.member_id.in_(ids))):
+            d = badge_detail(b, cfg)
+            out[b.member_id].append(
+                {"title": d["title"], "image_url": d["image_url"], "earned_date": d["earned_date"], "counted": d["counted"]}
+            )
+    for badges in out.values():
+        # Same order as /api/members/{id}: counted first, then by earned date.
+        badges.sort(key=lambda b: (not b["counted"], b["earned_date"] is None, b["earned_date"] or ""))
+    return {"run_id": run_id, "members": {str(k): v for k, v in out.items()}}
+
+
+def _team_standing(session: Session, run_id: int | None, team_id: int) -> Standing | None:
+    if run_id is None:
+        return None
     return session.scalars(
-        select(Run)
-        .where(Run.status == RUN_PUBLISHED)
-        .order_by(Run.published_at.desc(), Run.id.desc())
-        .options(selectinload(Run.standings))
-        .limit(1)
+        select(Standing).where(Standing.run_id == run_id, Standing.entity_type == "team", Standing.entity_id == team_id)
     ).first()
+
+
+def _member_standing(session: Session, run_id: int | None, member: Member) -> tuple[int | None, float | None]:
+    """(rank, score) for one member in a published run, without loading the other standings."""
+    if run_id is None:
+        return None, None
+    row = session.scalars(
+        select(Standing).where(
+            Standing.run_id == run_id, Standing.entity_type == "member", Standing.entity_id == member.id
+        )
+    ).first()
+    if row is not None:
+        return row.rank, row.score
+    if member.team_id is not None:
+        team_row = _team_standing(session, run_id, member.team_id)
+        if team_row is not None:
+            for m in (team_row.breakdown or {}).get("members", []):
+                if m["member_id"] == member.id:
+                    return None, m["score"]
+    return None, None
 
 
 def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = None) -> FastAPI:
@@ -193,14 +247,35 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
 
     # ---------------------------------------------------------------- public
     @app.get("/api/leaderboard")
-    def leaderboard(limit: int = Query(100, ge=1, le=500), session: Session = Depends(get_session)):
-        run = _latest_published(session)
-        if run is None:
+    def leaderboard(
+        response: Response, limit: int = Query(100, ge=1, le=500), session: Session = Depends(get_session)
+    ):
+        response.headers["Cache-Control"] = PUBLIC_CACHE_CONTROL
+        run_id = _latest_published_id(session)
+        if run_id is None:
             return {"run_id": None, "published_at": None, "mode": None, "total_participants": 0, "entries": []}
-        total_members = session.scalar(select(func.count()).select_from(Member).where(Member.active.is_(True))) or 0
-        res = _run_with_standings(run, limit)
-        res["total_participants"] = total_members
-        return res
+
+        def build() -> dict[str, Any]:
+            run = session.scalars(select(Run).where(Run.id == run_id).options(selectinload(Run.standings))).one()
+            res = _run_with_standings(run, 500)
+            res["total_participants"] = (
+                session.scalar(select(func.count()).select_from(Member).where(Member.active.is_(True))) or 0
+            )
+            return res
+
+        full = cache.get_or_build("leaderboard", run_id, build)
+        return {**full, "entries": full["entries"][:limit]}
+
+    @app.get("/api/leaderboard/badges")
+    def leaderboard_badges(response: Response, session: Session = Depends(get_session)):
+        """Badges for everyone on the published board in one response, instead of one request per member."""
+        response.headers["Cache-Control"] = PUBLIC_CACHE_CONTROL
+        run_id = _latest_published_id(session)
+        if run_id is None:
+            return {"run_id": None, "members": {}}
+        return cache.get_or_build(
+            "leaderboard_badges", run_id, lambda: _leaderboard_badges(session, run_id, _scoring())
+        )
 
     @app.get("/api/leaderboard/history")
     def history(limit: int = Query(30, ge=1, le=365), session: Session = Depends(get_session)):
@@ -208,7 +283,8 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
         return {"runs": [_run_summary(r) for r in runs]}
 
     @app.get("/api/leaderboard/status")
-    def status(session: Session = Depends(get_session)):
+    def status(response: Response, session: Session = Depends(get_session)):
+        response.headers["Cache-Control"] = PUBLIC_CACHE_CONTROL
         last_run = session.scalars(select(Run).order_by(Run.id.desc()).limit(1)).first()
         last_published = session.scalars(
             select(Run).where(Run.status == RUN_PUBLISHED).order_by(Run.id.desc()).limit(1)
@@ -249,23 +325,9 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
             raise HTTPException(404, "Run not found")
         return {**_run_with_standings(run, limit), "run": _run_summary(run), "scoring": run.scoring_snapshot}
 
-    def _published_scores(session: Session) -> PublishedScores:
-        """Scores from the latest published run. Only the top LEADERBOARD_SIZE entries are stored,
-        so anyone outside it has no published score (null)."""
-        run = _latest_published(session)
-        scores = PublishedScores(run_id=run.id if run else None)
-        for s in run.standings if run else []:
-            if s.entity_type == "team":
-                scores.teams[s.entity_id] = (s.rank, s.score)
-                for m in (s.breakdown or {}).get("members", []):
-                    scores.members[m["member_id"]] = (None, m["score"])
-            else:
-                scores.members[s.entity_id] = (s.rank, s.score)
-        return scores
-
-    def _member_out(m: Member, cfg: ScoringConfig, published: PublishedScores) -> dict[str, Any]:
+    def _member_out(m: Member, cfg: ScoringConfig, published: tuple[int | None, float | None]) -> dict[str, Any]:
         badges = [badge_detail(b, cfg) for b in sorted_badges(m)]
-        rank, score = published.members.get(m.id, (None, None))
+        rank, score = published
         return {
             "member_id": m.id,
             "name": m.name,
@@ -295,18 +357,22 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
         if team is None:
             raise HTTPException(404, "Team not found")
         cfg = _scoring()
-        published = _published_scores(session)
+        run_id = _latest_published_id(session)
+        team_row = _team_standing(session, run_id, team.id)
+        rank, score = (team_row.rank, team_row.score) if team_row is not None else (None, None)
+        member_scores = {
+            m["member_id"]: m["score"] for m in ((team_row.breakdown or {}) if team_row else {}).get("members", [])
+        }
         members = [m for m in team.members if m.active]
-        rank, score = published.teams.get(team.id, (None, None))
         return {
             "team_id": team.id,
             "name": team.name,
             "live_score": team_entry(team.id, team.name, [member_score(m, cfg) for m in members], cfg).score,
             "published_score": score,
             "published_rank": rank,
-            "published_run_id": published.run_id,
+            "published_run_id": run_id,
             "members": [
-                _member_out(m, cfg, published) for m in sorted(members, key=lambda m: m.name.lower())
+                _member_out(m, cfg, (None, member_scores.get(m.id))) for m in sorted(members, key=lambda m: m.name.lower())
             ],
         }
 
@@ -317,9 +383,9 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
         ).first()
         if member is None or not member.active:
             raise HTTPException(404, "Member not found")
-        published = _published_scores(session)
-        out = _member_out(member, _scoring(), published)
-        out["published_run_id"] = published.run_id
+        run_id = _latest_published_id(session)
+        out = _member_out(member, _scoring(), _member_standing(session, run_id, member))
+        out["published_run_id"] = run_id
         out["team"] = {"team_id": member.team.id, "name": member.team.name} if member.team else None
         out["badges"] = sorted(
             out["counted_badges"] + out["uncounted_badges"],
@@ -367,6 +433,7 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
             try:
                 with db.session_scope() as session:
                     report = import_form(session, form_path, teams_path)
+                cache.clear()  # total_participants may have changed
             except FormImportError as exc:
                 raise HTTPException(400, str(exc)) from exc
             return report.as_dict()

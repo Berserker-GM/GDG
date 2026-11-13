@@ -60,6 +60,9 @@ All settings are environment variables, read by `app/config.py`. Locally they co
 | `MAX_OTHER_BADGE_RATIO` | Reject a run if more than this share of badges is category `other`. | `0.5` | `0.5` | No |
 | `SCORING_CONFIG` | Path to the scoring rules file. | `scoring.yaml` | `scoring.yaml` | No |
 | `RUN_LOCK_TIMEOUT_HOURS` | A run still `running` after this long is treated as abandoned. | `2` | `2` | No |
+| `DB_POOL_SIZE` | Database connections each app instance keeps open (Postgres/MySQL only). | `3` | `3` | No |
+| `DB_MAX_OVERFLOW` | Extra connections allowed above `DB_POOL_SIZE` under load. Keep `DB_POOL_SIZE + DB_MAX_OVERFLOW` well under half the provider's limit (Supabase session pooler: 15), because a deploy runs the old and new instance at once. | `2` | `2` | No |
+| `DB_POOL_TIMEOUT` | Seconds a request waits for a free pooled connection before failing. | `30` | `30` | No |
 | `SKIP_MAXED_MEMBERS` | Skip fetching members already at `max_points_per_member` with a fresh, successful last fetch; they keep their stored score. | `true` | `true` | No |
 | `FETCH_CONCURRENCY` | Profiles fetched in parallel. Keep it low; be polite to Google. | `3` | `3` | No |
 | `FETCH_DELAY_SECONDS` | Pause after each request. | `1.5` | `1.5` | No |
@@ -456,6 +459,16 @@ Symptoms: `/health` returns `503` with `"database":"unreachable"`, or the deploy
 - **`must be owner of table`:** the role in `DATABASE_URL` doesn't own the tables. Use the same `postgres.<project-ref>` user that created them.
 
 After fixing `DATABASE_URL`, save and deploy (section 5) and re-check `/health`.
+
+### `EMAXCONNSESSION` / "max clients reached" / deploy exits with status 3
+
+Symptoms: a deploy crashes at startup (exit status 3), or requests fail, with `EMAXCONNSESSION`, `max clients reached in session mode` or `remaining connection slots are reserved`.
+
+Cause: the Supabase session pooler allows a fixed number of client connections (15 on the free plan). Each app instance opens up to `DB_POOL_SIZE + DB_MAX_OVERFLOW` (default 3 + 2 = 5), and during a deploy the old and new instance run side by side.
+
+- At startup the app retries the first database connection 5 times, waiting 3, 6, 12 and 24 seconds, so a deploy that overlaps the old instance waits for it to shut down. Seeing `Database not ready (attempt N/5)` in the logs is normal during a deploy.
+- If it still fails, lower `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` on Render, and check for other clients using the same database (a local `uvicorn`, scripts, the Supabase SQL editor, another Render service).
+- Public pages are cheap: `/api/leaderboard`, `/api/leaderboard/badges` and `/api/leaderboard/status` are cached (in memory until the next published run, and by browsers for 5 minutes), so traffic spikes don't open more connections.
 
 ### 409 "run already in progress"
 

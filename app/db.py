@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+import logging
+import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterator
+from typing import Callable, Iterator
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import get_settings
+
+log = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -42,16 +46,25 @@ def normalize_database_url(database_url: str) -> str:
 def configure(database_url: str | None = None) -> Engine:
     """(Re)create the engine. Called lazily, and by tests to point at a temp database."""
     global _engine, _SessionLocal
-    url = make_url(normalize_database_url(database_url or get_settings().database_url))
+    settings = get_settings()
+    url = make_url(normalize_database_url(database_url or settings.database_url))
     kwargs: dict = {"pool_pre_ping": True, "future": True}
     if url.get_backend_name() == "sqlite":
         kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
         if url.database and url.database != ":memory:":
             Path(url.database).parent.mkdir(parents=True, exist_ok=True)
     else:
+        # Keep the pool small: hosted Postgres poolers in session mode (e.g. Supabase) cap total client
+        # connections, and a deploy briefly runs the old and new instance side by side.
         kwargs["pool_recycle"] = 1800
+        kwargs["pool_size"] = settings.db_pool_size
+        kwargs["max_overflow"] = settings.db_max_overflow
+        kwargs["pool_timeout"] = settings.db_pool_timeout
     if _engine is not None:
         _engine.dispose()
+    from app import cache
+
+    cache.clear()  # cached responses belong to the previous database
     _engine = create_engine(url, **kwargs)
     _SessionLocal = sessionmaker(bind=_engine, expire_on_commit=False)
     return _engine
@@ -84,6 +97,23 @@ def init_db() -> None:
             for table in pending:
                 conn.execute(text(f'ALTER TABLE public."{table}" ENABLE ROW LEVEL SECURITY'))
             conn.commit()
+
+
+STARTUP_RETRY_DELAYS = (3, 6, 12, 24)
+
+
+def init_db_with_retry(delays: tuple[float, ...] = STARTUP_RETRY_DELAYS, sleep: Callable[[float], None] = time.sleep) -> None:
+    """``init_db`` with retries, so a deploy that overlaps the old instance (and finds the connection
+    limit full, e.g. EMAXCONNSESSION) waits for connections to free up instead of exiting."""
+    for attempt, delay in enumerate((*delays, None), start=1):
+        try:
+            init_db()
+            return
+        except Exception as exc:
+            if delay is None:
+                raise
+            log.warning("Database not ready (attempt %s/%s): %s; retrying in %ss", attempt, len(delays) + 1, exc, delay)
+            sleep(delay)
 
 
 def new_session() -> Session:

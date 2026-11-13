@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
+from app import cache
 from app.collectors import Collector, ProfileRef, ProfileResult, build_collectors
 from app.config import Settings, get_settings
 from app.db import session_scope, utcnow
@@ -233,6 +234,7 @@ async def execute_run(
                     )
                 )
             notes = []
+            publishing = False
             if skipped:
                 notes.append(f"Skipped {skipped} member(s) already at max points.")
                 log.info("Run %s: skipped %s member(s) already at max points", run_id, skipped)
@@ -258,6 +260,7 @@ async def execute_run(
             else:
                 run.status = RUN_PUBLISHED
                 run.published_at = utcnow()
+                publishing = True
             run.notes = " ".join(notes) or None
             run.finished_at = utcnow()
             summary = {
@@ -275,6 +278,8 @@ async def execute_run(
                 "scoring_hash": run.scoring_hash,
                 "notes": run.notes,
             }
+        if publishing:
+            cache.clear()  # after commit, so the next request rebuilds from the new run
         log.info(
             "Run %(run_id)s %(status)s: mode=%(mode)s attempted=%(attempted)s succeeded=%(succeeded)s "
             "failed=%(failed)s ratio=%(success_ratio)s entries=%(entries)s",

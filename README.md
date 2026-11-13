@@ -180,6 +180,7 @@ Open [http://localhost:8000](http://localhost:8000) in your browser to view the 
 - `GET /` — Serves the frontend web interface.
 - `GET /health` — Service healthcheck and database connectivity status.
 - `GET /api/leaderboard?limit=100` — Current published standings, podium leaders, and score breakdowns.
+- `GET /api/leaderboard/badges` — Badges (title, image, earned date, counted) for every member on the published board, in one response.
 - `GET /api/leaderboard/status` — Pipeline status, last sync timestamp, and link health statistics.
 - `GET /api/members/{member_id}` — Detailed badge breakdown and verification history for a single participant.
 
