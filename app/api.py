@@ -9,7 +9,6 @@ import io
 import logging
 import shutil
 import tempfile
-from collections import Counter
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
@@ -20,13 +19,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, load_only, selectinload
 
 from app import cache, db
 from app.collectors import Collector
 from app.config import get_settings
 from app.importer import FormImportError, import_form
-from app.leaderboard import active_members, badge_detail, member_score, resolve_mode, sorted_badges
+from app.leaderboard import badge_detail, member_score, resolve_mode_db, sorted_badges
 from app.models import RUN_PUBLISHED, RUN_RUNNING, Badge, Member, Run, Standing, Team
 from app.pipeline import RunInProgress, begin_run, execute_run, is_running_in_process
 from app.scoring import ScoringConfig, team_entry
@@ -100,6 +99,73 @@ def _run_summary(run: Run | None) -> dict[str, Any] | None:
         "scoring_hash": run.scoring_hash,
         "notes": run.notes,
     }
+
+
+# Columns _run_summary() reads; scoring_snapshot (a large JSON blob) is left out.
+RUN_SUMMARY_COLUMNS = (
+    Run.id,
+    Run.trigger,
+    Run.status,
+    Run.mode,
+    Run.started_at,
+    Run.finished_at,
+    Run.published_at,
+    Run.attempted,
+    Run.succeeded,
+    Run.failed,
+    Run.success_ratio,
+    Run.entries,
+    Run.scoring_hash,
+    Run.notes,
+)
+
+
+def _status_body(session: Session, scheduler: Any) -> dict[str, Any]:
+    """Status from aggregate queries: no member rows, no badges, no scoring snapshots."""
+    summary = load_only(*RUN_SUMMARY_COLUMNS)
+    last_run = session.scalars(select(Run).options(summary).order_by(Run.id.desc()).limit(1)).first()
+    last_published = session.scalars(
+        select(Run).options(summary).where(Run.status == RUN_PUBLISHED).order_by(Run.id.desc()).limit(1)
+    ).first()
+    active = Member.active.is_(True)
+    active_count = session.scalar(select(func.count()).select_from(Member).where(active)) or 0
+    stale_count = (
+        session.scalar(select(func.count()).select_from(Member).where(active, Member.is_stale.is_(True))) or 0
+    )
+    link_health = {
+        status: count
+        for status, count in session.execute(
+            select(Member.link_status, func.count()).where(active).group_by(Member.link_status)
+        )
+    }
+    mode = resolve_mode_db(get_settings().leaderboard_mode, session)
+    next_run = None
+    if scheduler is not None:
+        job = scheduler.get_job("daily-refresh")
+        if job is not None and job.next_run_time is not None:
+            next_run = job.next_run_time.isoformat()
+    body: dict[str, Any] = {
+        "mode": mode,
+        "running": is_running_in_process()
+        or session.scalar(select(func.count()).select_from(Run).where(Run.status == RUN_RUNNING)) > 0,
+        "last_run": _run_summary(last_run),
+        "last_published_run": _run_summary(last_published),
+        "next_scheduled_run": next_run,
+        "scheduler_enabled": scheduler is not None,
+        "active_members": active_count,
+        "stale_members": stale_count,
+        "link_health": dict(sorted(link_health.items())),
+    }
+    if mode == "team":
+        rows = session.execute(
+            select(Member.id, Member.full_name, Member.display_name)
+            .where(active, Member.team_id.is_(None))
+            .order_by(Member.id)
+        )
+        body["unassigned_members"] = [
+            {"member_id": mid, "name": full or display or f"Member {mid}"} for mid, full, display in rows
+        ]
+    return body
 
 
 def _standing_out(s: Standing) -> dict[str, Any]:
@@ -279,42 +345,17 @@ def create_app(collector_factory: Callable[[], dict[str, Collector]] | None = No
 
     @app.get("/api/leaderboard/history")
     def history(limit: int = Query(30, ge=1, le=365), session: Session = Depends(get_session)):
-        runs = session.scalars(select(Run).order_by(Run.id.desc()).limit(limit))
+        runs = session.scalars(
+            select(Run).options(load_only(*RUN_SUMMARY_COLUMNS)).order_by(Run.id.desc()).limit(limit)
+        )
         return {"runs": [_run_summary(r) for r in runs]}
 
     @app.get("/api/leaderboard/status")
     def status(response: Response, session: Session = Depends(get_session)):
         response.headers["Cache-Control"] = PUBLIC_CACHE_CONTROL
-        last_run = session.scalars(select(Run).order_by(Run.id.desc()).limit(1)).first()
-        last_published = session.scalars(
-            select(Run).where(Run.status == RUN_PUBLISHED).order_by(Run.id.desc()).limit(1)
-        ).first()
-        members = active_members(session)
-        link_health = Counter(m.link_status for m in members)
-        mode = resolve_mode(get_settings().leaderboard_mode, members)
-        next_run = None
+        # Every page view hits this; serve from memory and rebuild at most once a minute.
         scheduler = getattr(app.state, "scheduler", None)
-        if scheduler is not None:
-            job = scheduler.get_job("daily-refresh")
-            if job is not None and job.next_run_time is not None:
-                next_run = job.next_run_time.isoformat()
-        body: dict[str, Any] = {
-            "mode": mode,
-            "running": is_running_in_process()
-            or session.scalar(select(func.count()).select_from(Run).where(Run.status == RUN_RUNNING)) > 0,
-            "last_run": _run_summary(last_run),
-            "last_published_run": _run_summary(last_published),
-            "next_scheduled_run": next_run,
-            "scheduler_enabled": scheduler is not None,
-            "active_members": len(members),
-            "stale_members": sum(1 for m in members if m.is_stale),
-            "link_health": dict(sorted(link_health.items())),
-        }
-        if mode == "team":
-            body["unassigned_members"] = [
-                {"member_id": m.id, "name": m.name} for m in members if m.team_id is None
-            ]
-        return body
+        return cache.get_status(lambda: _status_body(session, scheduler))
 
     @app.get("/api/leaderboard/runs/{run_id}")
     def run_detail(run_id: int, limit: int = Query(500, ge=1, le=5000), session: Session = Depends(get_session)):

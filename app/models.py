@@ -121,7 +121,8 @@ class Badge(Base):
     title: Mapped[str] = mapped_column(String(500), nullable=False, default="")
     earned_raw: Mapped[str | None] = mapped_column(String(100))
     earned_date: Mapped[date | None] = mapped_column(Date)
-    description: Mapped[str | None] = mapped_column(Text)
+    # Deferred: only the scraper writes it and no read path needs it, so it is never SELECTed.
+    description: Mapped[str | None] = mapped_column(Text, deferred=True)
     source_path: Mapped[str | None] = mapped_column(String(255))
     category: Mapped[str] = mapped_column(String(32), nullable=False, default="other")
     deprecated: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -148,7 +149,8 @@ class Run(Base):
     success_ratio: Mapped[float | None] = mapped_column(Float)
     entries: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     scoring_hash: Mapped[str | None] = mapped_column(String(64))
-    scoring_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    # Deferred: only /api/leaderboard/runs/{id} returns it; status/history must not download it.
+    scoring_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON, deferred=True)
     notes: Mapped[str | None] = mapped_column(Text)
 
     standings: Mapped[list["Standing"]] = relationship(

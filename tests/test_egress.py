@@ -169,3 +169,145 @@ def test_startup_gives_up_after_five_attempts(monkeypatch):
         db.init_db_with_retry(sleep=slept.append)
     assert slept == [3, 6, 12, 24]
 
+
+
+# ------------------------------------------------------------------ status endpoint egress
+
+
+def _status_the_old_way(settings_mode="auto"):
+    """What /api/leaderboard/status computed before: load every member with badges, count in Python."""
+    from collections import Counter
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from app.leaderboard import resolve_mode
+    from app.models import Member
+
+    with db.session_scope() as s:
+        members = list(
+            s.scalars(select(Member).where(Member.active.is_(True)).options(selectinload(Member.badges)).order_by(Member.id))
+        )
+        mode = resolve_mode(settings_mode, members)
+        out = {
+            "mode": mode,
+            "active_members": len(members),
+            "stale_members": sum(1 for m in members if m.is_stale),
+            "link_health": dict(sorted(Counter(m.link_status for m in members).items())),
+        }
+        if mode == "team":
+            out["unassigned_members"] = [{"member_id": m.id, "name": m.name} for m in members if m.team_id is None]
+        return out
+
+
+@contextmanager
+def forbid_table(table):
+    def before(conn, cursor, statement, params, context, executemany):
+        assert not re.search(rf"\b{table}\b", statement), f"{table} queried: {statement}"
+
+    engine = db.get_engine()
+    event.listen(engine, "before_cursor_execute", before)
+    try:
+        yield
+    finally:
+        event.remove(engine, "before_cursor_execute", before)
+
+
+def _check_status_fields(body, expected):
+    for key, value in expected.items():
+        assert body[key] == value, key
+    assert set(body) >= {"running", "last_run", "last_published_run", "next_scheduled_run", "scheduler_enabled"}
+
+
+def test_status_same_values_without_loading_badges(solo):
+    from app.models import Member
+
+    with db.session_scope() as s:  # make the counts non-trivial: one stale member
+        s.get(Member, 1).is_stale = True
+    cache.clear()
+    expected = _status_the_old_way()
+    with forbid_table("badges"), count_queries() as q:
+        body = solo.get("/api/leaderboard/status").json()
+    _check_status_fields(body, expected)
+    assert body["stale_members"] == 1 and body["mode"] == "solo" and "unassigned_members" not in body
+    assert body["last_run"]["status"] == "published" and body["last_published_run"]["run_id"] == 1
+    assert not any("scoring_snapshot" in s for s in q)  # run rows are read without the JSON blob
+    assert not any(re.search(r"SELECT members\.id AS members_id, members\.usn", s) for s in q)  # no full member rows
+
+
+def test_status_team_mode_unassigned_without_loading_badges(settings, tmp_path):
+    rows = [
+        form_row("T1", "Alpha One", profile_url(0), team="Red"),
+        form_row("T2", "Beta Two", profile_url(1), team="Red"),
+        form_row("T3", "Gamma Three", profile_url(2)),
+    ]
+    with db.session_scope() as s:
+        import_form(s, write_form(tmp_path / "form.xlsx", rows, with_team_column=True))
+    asyncio.run(run_pipeline("test", collectors_for(_pages(3), settings)()))
+    cache.clear()
+    expected = _status_the_old_way()
+    assert expected["mode"] == "team" and len(expected["unassigned_members"]) == 1
+    with TestClient(create_app()) as c, forbid_table("badges"):
+        body = c.get("/api/leaderboard/status").json()
+    _check_status_fields(body, expected)
+    assert body["unassigned_members"][0]["name"] == "Gamma Three"
+
+
+def test_status_cached_for_60s_and_cleared_on_publish(solo, settings, monkeypatch):
+    cache.clear()
+    first = solo.get("/api/leaderboard/status").json()
+    with count_queries() as q:
+        again = solo.get("/api/leaderboard/status").json()
+    assert again == first and q == []  # served from memory, no DB at all
+
+    # Expires after the TTL.
+    import time as _time
+
+    real = _time.monotonic
+    monkeypatch.setattr(cache.time, "monotonic", lambda: real() + 61)
+    with count_queries() as q:
+        solo.get("/api/leaderboard/status")
+    assert _from(q, "members")
+    monkeypatch.setattr(cache.time, "monotonic", real)
+
+    # A publish clears it: the new run shows up immediately.
+    solo.get("/api/leaderboard/status")
+    asyncio.run(run_pipeline("test", collectors_for(_pages(3), settings)()))
+    body = solo.get("/api/leaderboard/status").json()
+    assert body["last_published_run"]["run_id"] == first["last_published_run"]["run_id"] + 1
+
+
+def test_status_cleared_when_run_starts(solo, settings):
+    from app.pipeline import _lock, begin_run
+
+    cache.clear()
+    assert solo.get("/api/leaderboard/status").json()["running"] is False
+    run_id = asyncio.run(begin_run("test"))
+    try:
+        body = solo.get("/api/leaderboard/status").json()
+        assert body["running"] is True and body["last_run"]["run_id"] == run_id
+    finally:
+        from app.models import RUN_FAILED, Run
+
+        with db.session_scope() as s:
+            s.get(Run, run_id).status = RUN_FAILED
+        _lock.release()
+
+
+def test_badges_endpoint_never_loads_description(solo):
+    cache.clear()
+    with count_queries() as q:
+        body = solo.get("/api/leaderboard/badges").json()
+    assert body["members"]
+    assert not any("description" in s for s in _from(q, "badges"))
+
+
+def test_refresh_pipeline_loads_only_scoring_columns(settings, solo):
+    with count_queries() as q:
+        asyncio.run(run_pipeline("test", collectors_for(_pages(3), settings)()))
+    from app.leaderboard import SCORING_BADGE_COLUMNS  # noqa: F401  (documented column list)
+
+    # The pipeline still writes descriptions (apply_result), but the scoring read must not select it.
+    scoring_reads = [s for s in _from(q, "badges") if "badges.member_id IN" in s and "image_url" not in s]
+    assert scoring_reads, "scoring should load badges with load_only"
+    assert not any("description" in s for s in scoring_reads)

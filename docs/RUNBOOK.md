@@ -529,3 +529,27 @@ pg_restore --no-owner --no-privileges --dbname "postgresql://...new project...?s
 - [ ] **Frontend checked on mobile:** open the site on a phone (portrait and landscape). The board loads, names and scores are readable, and team/member cards open.
 - [ ] **Backup taken** with `pg_dump` (section 10) and stored safely.
 - [ ] Someone other than you has read this runbook and knows where the token is kept.
+
+## Supabase egress
+
+What a public page view costs the database:
+
+| Endpoint | DB work per request |
+| --- | --- |
+| `GET /api/leaderboard` | 1 query (`SELECT runs.id` of the latest published run); the body comes from memory until a new run publishes |
+| `GET /api/leaderboard/badges` | the same 1 cheap run-id query; body from memory until a new run publishes |
+| `GET /api/leaderboard/status` | nothing while its 60-second in-memory cache is warm; otherwise ~8 small aggregate queries (counts, `GROUP BY link_status`, an `EXISTS` for mode, two run rows without `scoring_snapshot`) |
+| `GET /api/members/{id}` | only when someone opens a member card: that member, their badges, one standing |
+
+So a normal page view is ~2–3 tiny queries; everything else is served from memory. No public endpoint
+loads `badges.description` (deferred column) or `runs.scoring_snapshot` (deferred, only returned by
+`/api/leaderboard/runs/{id}`). The refresh pipeline loads badges with only the columns scoring reads.
+
+Caches are per process: they reset on restart and after `/api/admin/import`; status is also cleared
+when a run starts or finishes.
+
+**Checking usage:** Supabase dashboard → *Reports* → *Query Performance*; sort by *Rows returned*
+(or *Total time*). The top entries should be the refresh run's writes and the occasional status
+rebuild, not per-page-view `SELECT … FROM badges`. Total egress is under *Settings → Usage* (or the
+project's *Usage* page). If `badges` selects with `description` or `image_url` show up near the top,
+something is loading full badge rows again.
