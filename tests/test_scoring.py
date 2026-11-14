@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from app.scoring import ScoringConfig, member_entry, rank_entries, score_member, team_entry
 
@@ -12,6 +12,7 @@ class B:
     title: str = "Badge"
     deprecated: bool = False
     source_path: str | None = None
+    first_seen_at: datetime | None = None
 
 
 def cfg(**kw) -> ScoringConfig:
@@ -98,7 +99,11 @@ def test_tiebreak_skill_badges():
     a = _entry("a", 30, 0, date(2026, 9, 1))
     b = _entry("b", 30, 3, date(2026, 9, 1))
     assert a.score == b.score == 30
-    assert [e.name for _, e in rank_entries([a, b])] == ["b", "a"]
+    # Skill badges break score ties among non-finishers (top is a 40-point finisher).
+    top = _entry("top", 40, 4, date(2026, 9, 1))
+    assert [e.name for _, e in rank_entries([a, b, top])] == ["top", "b", "a"]
+    # Among finishers (both at max score) completion time, then name, decides; skill count does not.
+    assert [e.name for _, e in rank_entries([b, a])] == ["a", "b"]
 
 
 def test_tiebreak_reached_final_score_earlier():
@@ -115,27 +120,19 @@ def test_tiebreak_name():
     assert [r for r, _ in ranked] == [1, 2]
 
 
-def test_first_to_complete_on_top_then_alphabetical():
-    # Winner: 'Zed' completed first on Sep 1
-    # Subsequent finishers: 'Bob' completed on Sep 5, 'Alice' completed on Sep 10
-    # Expected ranking:
-    # 1: Zed (first to complete on top)
-    # 2: Alice (after that, whoever completes is sorted alphabetically)
-    # 3: Bob
-    # 4: Charlie (lower score, ranked below completers)
+def test_finishers_ranked_by_completion_date():
+    # Everyone at max score finished; order is by completion date, not by name.
     zed = _entry("Zed", 30, 3, date(2026, 9, 1))
     bob = _entry("Bob", 30, 3, date(2026, 9, 5))
     alice = _entry("Alice", 30, 3, date(2026, 9, 10))
     charlie = _entry("Charlie", 20, 2, date(2026, 9, 1))
 
     ranked = rank_entries([bob, charlie, zed, alice])
-    names = [e.name for _, e in ranked]
-    assert names == ["Zed", "Alice", "Bob", "Charlie"]
+    assert [e.name for _, e in ranked] == ["Zed", "Bob", "Alice", "Charlie"]
     assert [r for r, _ in ranked] == [1, 2, 3, 4]
 
 
-def test_first_to_complete_with_target_badges():
-    # With target_badges=3, anyone with >= 3 counted badges is considered completed
+def test_finishers_with_target_badges_ranked_by_completion_date():
     config = cfg(target_badges=3)
     zed = _entry("Zed", 30, 3, date(2026, 9, 1))
     bob = _entry("Bob", 30, 3, date(2026, 9, 5))
@@ -143,8 +140,65 @@ def test_first_to_complete_with_target_badges():
     david = _entry("David", 20, 2, date(2026, 9, 1))
 
     ranked = rank_entries([bob, david, zed, alice], config)
-    names = [e.name for _, e in ranked]
-    assert names == ["Zed", "Alice", "Bob", "David"]
+    assert [e.name for _, e in ranked] == ["Zed", "Bob", "Alice", "David"]
+
+
+def _finisher(member_id, name, day, last_seen):
+    """Completes a two-course syllabus; the second badge (earned on `day`) completes the set."""
+    badges = [
+        B("1", "skill_badge", date(2026, 10, 15), source_path="/course_templates/638",
+          first_seen_at=datetime(2026, 10, 15, 6, 0)),
+        B("2", "skill_badge", day, source_path="/course_templates/1426", first_seen_at=last_seen),
+    ]
+    return member_entry(score_member(member_id, name, badges, cfg(syllabus=SYLLABUS)))
+
+
+def test_same_completion_date_broken_by_first_seen_at():
+    c = cfg(syllabus=SYLLABUS)
+    day = date(2026, 10, 25)
+    amy = _finisher(1, "Amy", day, datetime(2026, 10, 25, 18, 0))
+    zed = _finisher(2, "Zed", day, datetime(2026, 10, 25, 9, 30))  # seen first that day
+    assert zed.completed_seen_at == datetime(2026, 10, 25, 9, 30)
+    assert zed.breakdown["completed_seen_at"] == "2026-10-25T09:30:00"
+    assert [e.name for _, e in rank_entries([amy, zed], c)] == ["Zed", "Amy"]
+
+    # Fully tied (same date and seen time, or no seen time): name, then id.
+    bob = _finisher(3, "bob", day, None)
+    al = _finisher(4, "Al", day, None)
+    assert bob.breakdown["completed_seen_at"] is None
+    assert [e.name for _, e in rank_entries([bob, amy, al, zed], c)] == ["Zed", "Amy", "Al", "bob"]
+
+
+def test_finisher_without_reached_at_goes_after_dated_finishers():
+    c = cfg(target_badges=1)
+    undated = member_entry(score_member(1, "Aaron", [B("1", "skill_badge", None)], c))
+    assert undated.reached_at is None
+    late = member_entry(score_member(2, "Zoe", [B("1", "skill_badge", date(2026, 10, 30))], c))
+    early = member_entry(score_member(3, "Yan", [B("1", "skill_badge", date(2026, 10, 1))], c))
+    unfinished = member_entry(score_member(4, "Abe", [], c))
+    assert [e.name for _, e in rank_entries([undated, unfinished, late, early], c)] == ["Yan", "Zoe", "Aaron", "Abe"]
+
+
+def test_completed_seen_at_picks_latest_seen_badge_on_completion_day():
+    s = score_member(
+        1,
+        "A",
+        [
+            B("1", "skill_badge", date(2026, 10, 25), first_seen_at=datetime(2026, 10, 25, 20, 0)),
+            B("2", "skill_badge", date(2026, 10, 25), first_seen_at=datetime(2026, 10, 25, 8, 0)),
+            B("3", "skill_badge", date(2026, 10, 20), first_seen_at=datetime(2026, 10, 26, 0, 0)),
+        ],
+        cfg(),
+    )
+    assert s.reached_at == date(2026, 10, 25) and s.completed_seen_at == datetime(2026, 10, 25, 20, 0)
+
+
+def test_team_completed_seen_at_is_latest_member():
+    a = score_member(1, "A", [B("1", "skill_badge", date(2026, 10, 2), first_seen_at=datetime(2026, 10, 2, 9))], cfg())
+    b = score_member(2, "B", [B("1", "skill_badge", date(2026, 10, 2), first_seen_at=datetime(2026, 10, 2, 17))], cfg())
+    team = team_entry(7, "T", [a, b], cfg())
+    assert team.completed_seen_at == datetime(2026, 10, 2, 17)
+    assert team.breakdown["completed_seen_at"] == "2026-10-02T17:00:00"
 
 
 def test_program_start_after_13th_midnight():

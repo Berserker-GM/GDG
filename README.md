@@ -79,7 +79,7 @@ Only the **10 syllabus skill badges** listed under `syllabus:` in `scoring.yaml`
 
 ### 🎯 Ranking & Tie-Breaker Logic
 1. **Completion Milestone**: The **first participant to complete all 10 syllabus badges** (earliest timestamp reaching final score) secures **Rank #1** on the podium.
-2. **Subsequent Finishers**: Any other participants who complete all badges are placed directly below Rank #1 in **alphabetical order**.
+2. **Subsequent Finishers**: Any other participants who complete all badges are placed directly below Rank #1 **in the order they finished**: earliest completion date (the date their last syllabus badge was earned) first. Badge dates are day-only, so finishers on the same day are ordered by when the leaderboard first saw the completing badge, then by name. A finisher whose completion date is unknown goes after the dated finishers.
 3. **Active Contenders**: All remaining participants are ranked by **Total Points (descending)**, then **Skill Badges (descending)**, and finally by **Name (alphabetical)**.
 4. **Program Eligibility**: Only badges earned within the program window (after **October 13th, midnight / Oct 14, 2026**) are counted towards points.
 
