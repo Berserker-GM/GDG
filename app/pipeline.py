@@ -14,7 +14,7 @@ from app import cache
 from app.collectors import Collector, ProfileRef, ProfileResult, build_collectors
 from app.config import Settings, get_settings
 from app.db import session_scope, utcnow
-from app.leaderboard import compute_entries, has_supported_link, member_score
+from app.leaderboard import compute_entries, has_supported_link, member_score, scoring_badges_option
 from app.models import (
     FETCH_ERROR,
     OK,
@@ -60,7 +60,9 @@ async def begin_run(trigger: str, settings: Settings | None = None) -> int:
             run = Run(trigger=trigger, status=RUN_RUNNING, started_at=utcnow())
             session.add(run)
             session.flush()
-            return run.id
+            run_id = run.id
+        cache.clear_status()  # after commit: status shows "running" right away
+        return run_id
     except BaseException:
         _lock.release()
         raise
@@ -135,7 +137,7 @@ def eligible_profiles(
     with session_scope() as session:
         query = select(Member).where(Member.active.is_(True)).order_by(Member.id)
         if skipping:
-            query = query.options(selectinload(Member.badges))
+            query = query.options(scoring_badges_option())
         refs: list[ProfileRef] = []
         skipped = 0
         for m in session.scalars(query):
@@ -280,6 +282,8 @@ async def execute_run(
             }
         if publishing:
             cache.clear()  # after commit, so the next request rebuilds from the new run
+        else:
+            cache.clear_status()  # last_run / running changed
         log.info(
             "Run %(run_id)s %(status)s: mode=%(mode)s attempted=%(attempted)s succeeded=%(succeeded)s "
             "failed=%(failed)s ratio=%(success_ratio)s entries=%(entries)s",
@@ -305,6 +309,7 @@ async def execute_run(
             for collector in collectors.values():
                 await collector.aclose()
         _lock.release()
+        cache.clear_status()  # "running" is false now, whatever the outcome
 
 
 async def run_pipeline(

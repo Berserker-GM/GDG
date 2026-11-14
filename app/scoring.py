@@ -15,7 +15,7 @@ import hashlib
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Iterable, Protocol
 
@@ -160,6 +160,7 @@ class BadgeLike(Protocol):
     deprecated: bool
     earned_date: date | None
     # Optional: source_path ("/course_templates/<id>") is used for syllabus matching when present.
+    # Optional: first_seen_at (when the scraper first saw the badge) breaks same-day completion ties.
 
 
 @dataclass
@@ -206,6 +207,8 @@ class MemberScore:
     stale: bool = False
     working_link: bool = True
     capped: bool = False
+    # first_seen_at of the badge that reached the final score (same-day tie-breaker for finishers).
+    completed_seen_at: datetime | None = None
 
 
 def score_member(
@@ -218,7 +221,7 @@ def score_member(
 ) -> MemberScore:
     counts = {c: 0 for c in CATEGORIES}
     points = {c: 0 for c in CATEGORIES}
-    counted: list[tuple[date | None, int]] = []
+    counted: list[tuple[date | None, datetime | None, int]] = []
     seen: set[str] = set()
     seen_courses: set[str] = set()
     skill = 0
@@ -240,22 +243,28 @@ def score_member(
         points[category] += verdict.points
         if category == "skill_badge":
             skill += 1
-        counted.append((badge.earned_date, verdict.points))
+        counted.append((badge.earned_date, getattr(badge, "first_seen_at", None), verdict.points))
 
-    total = sum(p for _, p in counted)
+    total = sum(p for _, _, p in counted)
     capped = cfg.max_points_per_member is not None and total > cfg.max_points_per_member
     final = min(total, cfg.max_points_per_member) if capped else total
 
     # "Reached final score" = date the running total first hit the final score. Uncapped, that is the
     # last counted badge (a 0-point syllabus badge still has to be earned to complete the set).
+    # Badges earned the same day are ordered by when they were first seen, so the one that completed the
+    # set is the last one seen.
     reached_at: date | None = None
+    completed_seen_at: datetime | None = None
     if counted:
         running = 0
-        ordered = sorted(counted, key=lambda x: (x[0] is None, x[0] or date.max))
-        for i, (earned, pts) in enumerate(ordered):
+        ordered = sorted(
+            counted, key=lambda x: (x[0] is None, x[0] or date.max, x[1] is not None, x[1] or datetime.min)
+        )
+        for i, (earned, seen, pts) in enumerate(ordered):
             running += pts
             if running >= final and (capped or i == len(ordered) - 1):
                 reached_at = earned
+                completed_seen_at = seen if earned is not None else None
                 break
 
     return MemberScore(
@@ -270,6 +279,7 @@ def score_member(
         stale=stale,
         working_link=working_link,
         capped=capped,
+        completed_seen_at=completed_seen_at,
     )
 
 
@@ -283,6 +293,7 @@ class Entry:
     skill_badges: int
     reached_at: date | None
     breakdown: dict[str, Any]
+    completed_seen_at: datetime | None = None
 
 
 def member_entry(ms: MemberScore, extra: dict[str, Any] | None = None) -> Entry:
@@ -294,11 +305,13 @@ def member_entry(ms: MemberScore, extra: dict[str, Any] | None = None) -> Entry:
         counted_badges=ms.counted_badges,
         skill_badges=ms.skill_badges,
         reached_at=ms.reached_at,
+        completed_seen_at=ms.completed_seen_at,
         breakdown={
             "counts_by_category": ms.counts_by_category,
             "points_by_category": ms.points_by_category,
             "skill_badges": ms.skill_badges,
             "reached_final_score_at": ms.reached_at.isoformat() if ms.reached_at else None,
+            "completed_seen_at": ms.completed_seen_at.isoformat() if ms.completed_seen_at else None,
             "capped": ms.capped,
             "stale": ms.stale,
             **(extra or {}),
@@ -316,6 +329,8 @@ def team_entry(team_id: int, team_name: str, members: list[MemberScore], cfg: Sc
     points = {c: sum(m.points_by_category[c] for m in members) for c in CATEGORIES}
     reached = [m.reached_at for m in members if m.score > 0 and m.reached_at is not None]
     reached_at = max(reached) if reached else None
+    seen = [m.completed_seen_at for m in members if m.score > 0 and m.completed_seen_at is not None]
+    completed_seen_at = max(seen) if seen else None
     skill = sum(m.skill_badges for m in members)
     return Entry(
         entity_type="team",
@@ -325,12 +340,14 @@ def team_entry(team_id: int, team_name: str, members: list[MemberScore], cfg: Sc
         counted_badges=sum(m.counted_badges for m in members),
         skill_badges=skill,
         reached_at=reached_at,
+        completed_seen_at=completed_seen_at,
         breakdown={
             "aggregation": cfg.team_aggregation,
             "counts_by_category": counts,
             "points_by_category": points,
             "skill_badges": skill,
             "reached_final_score_at": reached_at.isoformat() if reached_at else None,
+            "completed_seen_at": completed_seen_at.isoformat() if completed_seen_at else None,
             "member_count": len(members),
             "working_link_members": len(working),
             "stale_members": sum(1 for m in members if m.stale),
@@ -354,12 +371,26 @@ def rank_key(entry: Entry) -> tuple:
     return (-entry.score, -entry.skill_badges, entry.reached_at or date.max, entry.name.lower(), entry.entity_id)
 
 
+def completion_key(entry: Entry) -> tuple:
+    """Finisher order: earliest completion date, then earliest first_seen_at of the completing badge
+    (badge dates are day-only), then name, then id. Missing values sort after present ones."""
+    return (
+        entry.reached_at is None,
+        entry.reached_at or date.max,
+        entry.completed_seen_at is None,
+        entry.completed_seen_at or datetime.max,
+        entry.name.lower(),
+        entry.entity_id,
+    )
+
+
 def rank_entries(entries: Iterable[Entry], cfg: ScoringConfig | None = None) -> list[tuple[int, Entry]]:
     """Rank entries according to the campaign rules:
-    - Participants who completed all badges (either reaching cfg.target_badges, or the highest
-      score group if cfg.target_badges is not set):
-      - The first participant to complete all badges (earliest reached_at) is placed on top.
-      - After that, all other participants who completed are ranked in alphabetical order by name.
+    - Participants who completed all badges (counted_badges >= cfg.completion_target, or, when there is
+      no completion target, everyone in the highest score group) come first, ordered by completion time:
+      earliest reached_at (date the last syllabus badge was earned) first; same-day ties go to the earliest
+      first_seen_at of the completing badge (completed_seen_at); then name, then entity id. A finisher
+      without a reached_at goes after those who have one.
     - All remaining participants are ranked below by score desc, skill badges desc, and name alphabetically.
     """
     entries_list = list(entries)
@@ -373,21 +404,9 @@ def rank_entries(entries: Iterable[Entry], cfg: ScoringConfig | None = None) -> 
         max_score = max((e.score for e in entries_list), default=0)
         completed = [e for e in entries_list if e.score == max_score and max_score > 0]
 
-    if completed:
-        first_winner = min(
-            completed,
-            key=lambda e: (e.reached_at or date.max, -e.skill_badges, e.name.lower(), e.entity_id),
-        )
-        other_completed = sorted(
-            [e for e in completed if (e.entity_id != first_winner.entity_id or e.name != first_winner.name)],
-            key=lambda e: (e.name.lower(), e.entity_id),
-        )
-        completed_ranked = [first_winner] + other_completed
-        completed_keys = {(e.entity_type, e.entity_id) for e in completed}
-        remaining = [e for e in entries_list if (e.entity_type, e.entity_id) not in completed_keys]
-    else:
-        completed_ranked = []
-        remaining = entries_list
+    completed_ranked = sorted(completed, key=completion_key)
+    completed_keys = {id(e) for e in completed}
+    remaining = [e for e in entries_list if id(e) not in completed_keys]
 
     remaining_ranked = sorted(
         remaining,
